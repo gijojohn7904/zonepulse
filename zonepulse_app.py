@@ -70,7 +70,7 @@ if uploaded_file:
     st.markdown("## 🏍️ Individual DE-wise View")
 
     if "DE_ID" in df.columns:
-        de_ids = df[df["VERTICAL"] == vertical]["DE_ID"].dropna().astype(str).unique()
+        de_ids = df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
         selected_de_flag = selected_de != "None"
     else:
@@ -111,15 +111,13 @@ if uploaded_file:
             )
 
             order_line = base.mark_line(color="#ff7f0e").encode(
-                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", titleColor="#ff7f0e")),
+                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
                 tooltip=["DT", "TOTAL ORDERS"]
-            ).encode(
-                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders"), scale=alt.Scale(zero=True))
             )
 
             st.altair_chart(alt.layer(
                 login_line,
-                order_line.encode(y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")))
+                order_line
             ).resolve_scale(y='independent'), use_container_width=True)
 
 else:
