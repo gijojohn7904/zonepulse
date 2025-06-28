@@ -18,7 +18,7 @@ Please handle this information responsibly, in accordance with company data poli
 
 # Banner
 st.markdown("""
-# 🚦 ZonePulse – DE Supply Efficiency Monitor | Powered by Claude Sonnet 4
+# 🚦 DE Fleet Efficiency Monitor | Swiggy.ltd
 Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-supply across zones.
 """)
 
