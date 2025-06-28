@@ -13,7 +13,7 @@ Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-s
 """)
 
 # File uploader
-uploaded_file = st.file_uploader("🔕️ Upload your Swiggy DE CSV file", type=["csv"])
+uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -65,12 +65,15 @@ if uploaded_file:
             if hour_df.empty:
                 continue
 
-            zone_group = hour_df.groupby("ZONE")[[fd_col, lh_col]].agg(
-                {fd_col: 'mean', lh_col: ['mean', 'count']}).reset_index()
-            zone_group.columns = ["ZONE", "Avg Orders", "Avg Login Mins", "Active DEs"]
+            zone_group = hour_df.groupby("ZONE").agg(
+                Avg_Orders=(fd_col, 'mean'),
+                Avg_Login_Mins=(lh_col, 'mean'),
+                Active_DEs=(lh_col, lambda x: (x > 0).sum())
+            ).reset_index()
+
             zone_group["Hour"] = hr
             zone_group["Idle Ratio"] = zone_group.apply(
-                lambda row: (row["Avg Login Mins"] / (row["Avg Orders"] * 60)) if row["Avg Orders"] > 0 else np.nan,
+                lambda row: (row["Avg_Login_Mins"] / (row["Avg_Orders"] * 60)) if row["Avg_Orders"] > 0 else np.nan,
                 axis=1)
             hourly_data.append(zone_group)
 
@@ -100,7 +103,7 @@ if uploaded_file:
             )
 
         st.markdown("## 🚨 Stress Hours (High Orders, Low Login)")
-        stress_df = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
+        stress_df = zone_hour_df[(zone_hour_df["Avg_Orders"] > 2) & (zone_hour_df["Avg_Login_Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
 
         st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
@@ -167,4 +170,4 @@ if uploaded_file:
     else:
         st.warning("No hourly data (FD_ / LH_) found to compute insights.")
 else:
-    st.info("👆 Upload your Swiggy DE CSV to get started.")
+    st.info("👆 Upload your DE Order vs Login File to get started.")
