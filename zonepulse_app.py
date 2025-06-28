@@ -1,5 +1,3 @@
-# zonepulse_app.py
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,7 +14,7 @@ uploaded_file = st.file_uploader("📥 Upload your DE CSV file", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    # Check required columns
+    # Check for hourly columns (FD_, LH_)
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
         st.error("❌ CSV does not contain hourly login/order columns like LH_00, FD_01 etc.")
@@ -29,13 +27,13 @@ if uploaded_file:
     vertical = st.selectbox("Choose vertical", ["SwiggyFood", "Instamart"])
     df = df[df["Vertical"] == vertical]
 
-    # City filter with error handling
-    if "City" in df.columns:
-        cities = df["City"].dropna().unique()
+    # CITY filter (adjusted to match your column name)
+    if "CITY" in df.columns:
+        cities = df["CITY"].dropna().unique()
         selected_city = st.selectbox("Choose City", sorted(cities))
-        df = df[df["City"] == selected_city]
+        df = df[df["CITY"] == selected_city]
     else:
-        st.error("❌ 'City' column not found in uploaded CSV. Please check your file format.")
+        st.error("❌ 'CITY' column not found in uploaded CSV. Please check your file format.")
         st.stop()
 
     # Total login and order summary
@@ -49,7 +47,7 @@ if uploaded_file:
         lh_col = f"LH_{str(hr).zfill(2)}"
 
         if fd_col in df.columns and lh_col in df.columns:
-            grouped = df.groupby("Zone")[[fd_col, lh_col]].mean().reset_index()
+            grouped = df.groupby("ZONE")[[fd_col, lh_col]].mean().reset_index()
             grouped["Hour"] = hr
             grouped.rename(columns={fd_col: "Avg Orders", lh_col: "Avg Login Mins"}, inplace=True)
             grouped["Idle Ratio"] = grouped.apply(
@@ -59,11 +57,11 @@ if uploaded_file:
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
         st.markdown("## 🧭 Zone-Level Hourly Balance Report")
-        st.dataframe(zone_hour_df.sort_values(by=["Zone", "Hour"]))
+        st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
         st.markdown("## ⚠️ DEs at Churn Risk (Logged in > 3 hours, Orders < 2)")
         churn_df = df[(df["Total Login Mins"] >= 180) & (df["Total Orders"] < 2)]
-        st.dataframe(churn_df[["DE Name", "Zone", "Total Login Mins", "Total Orders"]])
+        st.dataframe(churn_df[["DE_NAME", "ZONE", "Total Login Mins", "Total Orders"]])
 
         st.markdown("## 📈 Demand Stress Report (High Orders, Low Login)")
         stress_zones = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
