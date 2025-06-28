@@ -93,7 +93,7 @@ if uploaded_file:
             # ⬇️ New Recommendation Logic Here
             zone_group["Recommendation"] = zone_group.apply(
                 lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
-                else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 65)
+                else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
                 else "✅ Balanced",
                 axis=1
             )
