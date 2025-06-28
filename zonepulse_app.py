@@ -13,7 +13,7 @@ Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-s
 """)
 
 # File uploader
-uploaded_file = st.file_uploader("📥 Upload your Swiggy DE CSV file", type=["csv"])
+uploaded_file = st.file_uploader("📅 Upload your Swiggy DE CSV file", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -30,7 +30,7 @@ if uploaded_file:
 
     if "CITY" in df.columns:
         cities = df["CITY"].dropna().unique()
-        selected_city = st.selectbox("🏙️ Choose City", sorted(cities))
+        selected_city = st.selectbox("🏩 Choose City", sorted(cities))
         df = df[df["CITY"] == selected_city]
     else:
         st.error("❌ 'CITY' column missing.")
@@ -46,12 +46,8 @@ if uploaded_file:
 
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox("🧍 Choose DE ID (optional)", ["All"] + sorted(de_ids))
-        if selected_de != "All":
-            df = df[df["DE_ID"].astype(str) == selected_de]
-            selected_de_flag = True
-        else:
-            selected_de_flag = False
+        selected_de = st.selectbox("🧐 Choose DE ID (optional, for Individual View only)", ["None"] + sorted(de_ids))
+        selected_de_flag = selected_de != "None"
     else:
         st.error("❌ 'DE_ID' column missing.")
         st.stop()
@@ -95,7 +91,7 @@ if uploaded_file:
 
             churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Total Login Mins", "Total Orders"]]
             st.download_button(
-                label="📥 Download Churn Risk Report (CSV)",
+                label="📅 Download Churn Risk Report (CSV)",
                 data=churn_csv.to_csv(index=False),
                 file_name="churn_risk_DEs.csv",
                 mime="text/csv"
@@ -105,12 +101,12 @@ if uploaded_file:
         stress_df = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
 
-        st.download_button("📥 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
+        st.download_button("📅 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
         # Individual DE-wise View
-        st.markdown("## 🧍 Individual DE-wise View")
+        st.markdown("## 🤍 Individual DE-wise View")
         if selected_de_flag:
-            de_data = df.copy()
+            de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
 
             # Summary stats
@@ -121,9 +117,9 @@ if uploaded_file:
             idle_ratio = round(total_login / (total_orders * 60), 2) if total_orders > 0 else np.nan
 
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("📅 Active Days", total_days)
+            col1.metric("🗕️ Active Days", total_days)
             col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 1))
-            col3.metric("🛵 Total Orders", int(total_orders))
+            col3.metric("🙵️ Total Orders", int(total_orders))
             col4.metric("⚖️ Idle Ratio", idle_ratio if not np.isnan(idle_ratio) else "∞")
 
             # Login vs Orders line chart
