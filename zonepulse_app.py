@@ -67,6 +67,30 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     hourly_data = []
+
+import math
+
+def calculate_recommendation(row):
+    orders_per_hour = row["Orders_per_Hour"]
+    login_util = row["Login_Utilization_%"]
+    active_des = row["Active_DEs"]
+    avg_orders = row["Avg_Orders"]
+
+    if orders_per_hour < 0.6 and login_util < 25 and active_des >= 20:
+        ideal_login = (avg_orders * 20) / 0.5  # target 50% utilization
+        required_des = int(math.ceil(ideal_login / 60))
+        reduce_by = max(active_des - required_des, 0)
+        return f"🔴 Overstaffed – Reduce DEs by {reduce_by}"
+
+    elif orders_per_hour > 1.5 and login_util > 65 and active_des < 50:
+        ideal_login = (avg_orders * 20) / 0.6  # target 60% utilization
+        required_des = int(math.ceil(ideal_login / 60))
+        add_by = max(required_des - active_des, 0)
+        return f"🟢 Understaffed – Add {add_by} DEs"
+
+    else:
+        return "⚪ Balanced – No action needed"
+
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
         lh_col = f"LH_{str(hr).zfill(2)}"
@@ -90,13 +114,9 @@ if uploaded_file:
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
 
-            # ⬇️ New Recommendation Logic Here
-            zone_group["Recommendation"] = zone_group.apply(
-                lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
-                else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
-                else "✅ Balanced",
-                axis=1
-            )
+           # ✅ New logic with action suggestion
+zone_group["Recommendation"] = zone_group.apply(calculate_recommendation, axis=1)
+
 
             hourly_data.append(zone_group)
 
@@ -104,6 +124,22 @@ if uploaded_file:
         zone_hour_df = pd.concat(hourly_data)
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+
+    # ⬇️ Show only actionable rows (excluding balanced ones)
+    st.markdown("## 📌 Action Plan: Zones Needing Intervention")
+    action_df = zone_hour_df[~zone_hour_df["Recommendation"].str.contains("Balanced")]
+    
+    if not action_df.empty:
+        st.dataframe(action_df.sort_values(by=["ZONE", "Hour"]))
+        st.download_button(
+            label="📥 Download Action Plan",
+            data=action_df.to_csv(index=False),
+            file_name="zone_action_recommendations.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("🎯 All zones appear balanced during selected hours – No action required.")
+
 
     st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
