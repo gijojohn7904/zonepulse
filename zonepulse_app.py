@@ -114,7 +114,7 @@ if uploaded_file:
         st.markdown("## 🏍️ Individual DE-wise View")
 
         if "DE_ID" in df.columns:
-            de_ids = df["DE_ID"].dropna().astype(str).unique()
+            de_ids = df[df["VERTICAL"] == vertical]["DE_ID"].dropna().astype(str).unique()
             selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
             selected_de_flag = selected_de != "None"
         else:
@@ -146,10 +146,26 @@ if uploaded_file:
 
             trend_df = de_data[["DT", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
             trend_df["DT"] = pd.to_datetime(trend_df["DT"])
-            trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(
-                x="DT:T", y="value:Q", color="variable:N"
-            ).properties(title="Login Mins vs Orders – Daily")
-            st.altair_chart(trend_chart, use_container_width=True)
+
+            base = alt.Chart(trend_df).encode(
+                x=alt.X("DT:T", title="Date")
+            )
+
+            login_line = base.mark_line(color="#1f77b4").encode(
+                y=alt.Y("TOTAL LOGIN MINS:Q", title="Login Minutes"),
+                tooltip=["DT", "TOTAL LOGIN MINS"]
+            )
+
+            orders_line = base.mark_line(color="#ff7f0e").encode(
+                y=alt.Y("TOTAL ORDERS:Q", title="Total Orders", axis=alt.Axis(titleColor="#ff7f0e")),
+                tooltip=["DT", "TOTAL ORDERS"]
+            )
+
+            combined_chart = alt.layer(login_line, orders_line).resolve_scale(y='independent').properties(
+                title="Login Minutes vs Total Orders – Daily"
+            )
+
+            st.altair_chart(combined_chart, use_container_width=True)
 
             if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]):
                 week_summary = de_data.groupby("WEEK")[["TOTAL LOGIN MINS", "TOTAL ORDERS"]].sum().reset_index()
