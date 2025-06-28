@@ -44,6 +44,17 @@ if uploaded_file:
         st.error("❌ 'ZONE' column missing.")
         st.stop()
 
+    if "DT" in df.columns and "WEEK" in df.columns:
+        df["DT"] = pd.to_datetime(df["DT"])
+        min_date, max_date = df["DT"].min(), df["DT"].max()
+        selected_dates = st.date_input("📆 Filter by Date Range", [min_date, max_date])
+        if len(selected_dates) == 2:
+            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+
+        weeks = sorted(df["WEEK"].dropna().unique())
+        selected_weeks = st.multiselect("📅 Filter by Week(s)", weeks, default=weeks)
+        df = df[df["WEEK"].isin(selected_weeks)]
+
     df["Total Login Mins"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["Total Orders"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
@@ -100,7 +111,7 @@ if uploaded_file:
 
         if "DE_ID" in df.columns:
             de_ids = df["DE_ID"].dropna().astype(str).unique()
-            selected_de = st.selectbox("🧐 Choose DE ID", ["None"] + sorted(de_ids))
+            selected_de = st.selectbox("🧐 Choose DE ID to Explore", ["None"] + sorted(de_ids))
             selected_de_flag = selected_de != "None"
         else:
             st.error("❌ 'DE_ID' column missing.")
@@ -109,6 +120,8 @@ if uploaded_file:
         if selected_de_flag:
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
+
+            st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏙️ **City:** {de_data['CITY'].iloc[0]}")
 
             # Summary stats
             total_days = de_data.shape[0]
