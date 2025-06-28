@@ -98,20 +98,21 @@ if hourly_data:
     st.markdown("## 📊 Zone-Level Hourly Report")
     st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
+    st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
+    churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
+    churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
 
-        st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
-        churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
-        churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
+    churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
+    if "REJECTED_ORDERS" in df.columns:
+        churn_cols.append("REJECTED_ORDERS")
+    if "DAILY_EARNINGS" in df.columns:
+        churn_cols.append("DAILY_EARNINGS")
 
-        churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
-        if "REJECTED_ORDERS" in df.columns: churn_cols.append("REJECTED_ORDERS")
-        if "DAILY_EARNINGS" in df.columns: churn_cols.append("DAILY_EARNINGS")
-
-        if churn_df.empty:
-            st.info("✅ No churn risk DEs found for the selected filters.")
-        else:
-            st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
-            st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
+    if churn_df.empty:
+        st.info("✅ No churn risk DEs found for the selected filters.")
+    else:
+        st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
+        st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
 
         # 👤 Individual DE-wise View
