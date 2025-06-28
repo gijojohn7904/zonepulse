@@ -24,7 +24,13 @@ if uploaded_file:
     df = df[df["Vertical"] == vertical]
 
     # City filter
+    if "City" in df.columns:
     cities = df["City"].dropna().unique()
+    selected_city = st.selectbox("Choose City", sorted(cities))
+    df = df[df["City"] == selected_city]
+else:
+    st.error("❌ 'City' column not found in uploaded CSV. Please check your file format.")
+    st.stop()
     selected_city = st.selectbox("Choose City", sorted(cities))
     df = df[df["City"] == selected_city]
 
