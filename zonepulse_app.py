@@ -154,7 +154,5 @@ if uploaded_file:
                 ).properties(title="💸 Daily Earnings Distribution (Pie Chart)")
                 st.altair_chart(pie_chart, use_container_width=True)
 
-            # remaining chart and breakdown already included in original script...
-
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
