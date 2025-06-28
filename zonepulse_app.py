@@ -137,7 +137,7 @@ if uploaded_file:
             selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
             if selected_de != "None":
                 de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-                st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
+                st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
                 st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
 
                 total_days = de_data.shape[0]
