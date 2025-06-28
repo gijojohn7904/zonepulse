@@ -44,14 +44,6 @@ if uploaded_file:
         st.error("❌ 'ZONE' column missing.")
         st.stop()
 
-    if "DE_ID" in df.columns:
-        de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox("🧐 Choose DE ID (optional, for Individual View only)", ["None"] + sorted(de_ids))
-        selected_de_flag = selected_de != "None"
-    else:
-        st.error("❌ 'DE_ID' column missing.")
-        st.stop()
-
     df["Total Login Mins"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["Total Orders"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
@@ -105,6 +97,15 @@ if uploaded_file:
 
         # Individual DE-wise View
         st.markdown("## 🤍 Individual DE-wise View")
+
+        if "DE_ID" in df.columns:
+            de_ids = df["DE_ID"].dropna().astype(str).unique()
+            selected_de = st.selectbox("🧐 Choose DE ID", ["None"] + sorted(de_ids))
+            selected_de_flag = selected_de != "None"
+        else:
+            st.error("❌ 'DE_ID' column missing.")
+            st.stop()
+
         if selected_de_flag:
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
