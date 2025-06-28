@@ -70,7 +70,11 @@ if uploaded_file:
     st.markdown("## 🏍️ Individual DE-wise View")
 
     if "DE_ID" in df.columns:
-        de_ids = df["DE_ID"].dropna().astype(str).unique()
+        filtered_de_df = df.copy()
+        de_ids = filtered_de_df["DE_ID"].dropna().astype(str).unique()
+        if len(de_ids) == 0:
+            st.warning("⚠️ No DEs available for selected filters. Try changing city or zone.")
+            st.stop()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
         selected_de_flag = selected_de != "None"
     else:
