@@ -89,14 +89,21 @@ if uploaded_file:
             zone_group["Login_Utilization_%"] = zone_group.apply(
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
+
+            # ⬇️ New Recommendation Logic Here
+            zone_group["Recommendation"] = zone_group.apply(
+                lambda row: "🔴 Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25 and row["Active_DEs"] >= 20)
+                else "🟢 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 65 and row["Active_DEs"] < 30)
+                else "⚪ Balanced",
+                axis=1
+            )
+
             hourly_data.append(zone_group)
 
-
-if hourly_data:
-    zone_hour_df = pd.concat(hourly_data)
-
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+    if hourly_data:
+        zone_hour_df = pd.concat(hourly_data)
+        st.markdown("## 📊 Zone-Level Hourly Report")
+        st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
     st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
