@@ -89,6 +89,13 @@ if uploaded_file:
             zone_group["Login_Utilization_%"] = zone_group.apply(
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
+
+               zone_group = zone_group.round({
+    "Avg_Orders": 2,
+    "Avg_Login_Mins": 2,
+    "Orders_per_Hour": 2,
+    "Login_Utilization_%": 2
+})
             hourly_data.append(zone_group)
 
     if hourly_data:
