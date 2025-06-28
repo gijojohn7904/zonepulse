@@ -157,14 +157,28 @@ if uploaded_file:
                     week_summary["DAILY_EARNINGS"] = de_data.groupby("WEEK")["DAILY_EARNINGS"].sum().values
                 week_summary["Total Login Hrs"] = week_summary["TOTAL LOGIN MINS"] / 60
 
-                value_cols = ["Total Login Hrs", "TOTAL ORDERS"]
-                if "REJECTED_ORDERS" in week_summary.columns: value_cols.append("REJECTED_ORDERS")
-                if "DAILY_EARNINGS" in week_summary.columns: value_cols.append("DAILY_EARNINGS")
+                metrics_to_plot = {
+                    "Total Login Hrs": "Total Login Hours",
+                    "TOTAL ORDERS": "Total Orders",
+                }
+                if "REJECTED_ORDERS" in week_summary.columns:
+                    metrics_to_plot["REJECTED_ORDERS"] = "Rejected Orders"
+                if "DAILY_EARNINGS" in week_summary.columns:
+                    metrics_to_plot["DAILY_EARNINGS"] = "Daily Earnings (₹)"
 
-                bar_chart = alt.Chart(week_summary).transform_fold(value_cols).mark_bar().encode(
-                    x="WEEK:N", y="value:Q", color="key:N", column=alt.Column("key:N")
-                ).properties(title="Week-on-Week Performance")
-                st.altair_chart(bar_chart, use_container_width=True)
+                metric_keys = list(metrics_to_plot.keys())
+                for i in range(0, len(metric_keys), 2):
+                    cols = st.columns(2)
+                    for j in range(2):
+                        if i + j < len(metric_keys):
+                            key = metric_keys[i + j]
+                            title = metrics_to_plot[key]
+                            chart = alt.Chart(week_summary).mark_bar().encode(
+                                x="WEEK:N",
+                                y=alt.Y(f"{key}:Q", title=title),
+                                tooltip=["WEEK", key]
+                            ).properties(title=title)
+                            cols[j].altair_chart(chart, use_container_width=True)
 
                 breakdown = de_data[["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
                 if "REJECTED_ORDERS" in de_data.columns:
