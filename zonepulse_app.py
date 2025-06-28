@@ -69,7 +69,7 @@ if uploaded_file:
         lh_col = f"LH_{str(hr).zfill(2)}"
 
         if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 10]  # only DEs logged in that hour
+            hour_df = df[df[lh_col] > 0]  # only DEs logged in that hour
             if hour_df.empty:
                 continue
 
@@ -90,14 +90,41 @@ if uploaded_file:
         # Churn risk DEs
         st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
         churn_df = df[(df["Total Login Mins"] >= 180) & (df["Total Orders"] < 2)]
-        st.dataframe(churn_df[["DE_NAME", "ZONE", "Total Login Mins", "Total Orders"]])
+
+        if churn_df.empty:
+            st.info("✅ No churn risk DEs found for the selected filters.")
+        else:
+            # Quick summary
+            st.dataframe(
+                churn_df[["DE_NAME", "ZONE", "DT", "WEEK", "Total Login Mins", "Total Orders"]]
+                    .sort_values(by=["ZONE", "DT", "DE_NAME"])
+            )
+
+            # DE-wise collapsible view
+            st.markdown("### 🧍 Individual DE-wise View")
+            for de_name, de_data in churn_df.groupby("DE_NAME"):
+                with st.expander(f"{de_name} ({de_data['ZONE'].iloc[0]})"):
+                    st.dataframe(
+                        de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]]
+                            .sort_values(by="DT")
+                            .reset_index(drop=True)
+                    )
+
+            # Download churn report
+            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Total Login Mins", "Total Orders"]]
+            st.download_button(
+                label="📥 Download Churn Risk Report (CSV)",
+                data=churn_csv.to_csv(index=False),
+                file_name="churn_risk_DEs.csv",
+                mime="text/csv"
+            )
 
         # Understaffed zones
         st.markdown("## 🚨 Stress Hours (High Orders, Low Login)")
         stress_df = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
 
-        # Download button
+        # Download full zone hourly report
         st.download_button("📥 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
     else:
         st.warning("No hourly data (FD_ / LH_) found to compute insights.")
