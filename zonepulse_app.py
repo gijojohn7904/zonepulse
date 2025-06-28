@@ -91,9 +91,6 @@ if uploaded_file:
                 axis=1)
             hourly_data.append(zone_group)
 
-    if hourly_data:
-        zone_hour_df = pd.concat(hourly_data)
-
 
 if hourly_data:
     zone_hour_df = pd.concat(hourly_data)
