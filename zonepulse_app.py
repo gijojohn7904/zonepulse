@@ -112,3 +112,8 @@ if uploaded_file:
 
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+
+        # Reinsert other sections like churn detection, DE view, metrics, charts etc. here
+
+else:
+    st.info("👆 Upload your DE Order vs Login File to get started.")
