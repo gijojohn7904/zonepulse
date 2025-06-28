@@ -45,11 +45,11 @@ if uploaded_file:
         st.stop()
 
     if "DT" in df.columns:
-        df["DT"] = pd.to_datetime(df["DT"])
+        df["DT"] = pd.to_datetime(df["DT"]).dt.date
         min_date, max_date = df["DT"].min(), df["DT"].max()
         selected_dates = st.date_input("📆 Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
-            df = df[(df["DT"] >= pd.to_datetime(selected_dates[0])) & (df["DT"] <= pd.to_datetime(selected_dates[1]))]
+            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
 
     df["Total Login Mins"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["Total Orders"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
