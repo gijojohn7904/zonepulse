@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -203,7 +202,9 @@ else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
 
 
-
+# -------------------------------------------
+# 🧙 No-Show DEs – Logged in Previously, Missing Now
+# -------------------------------------------
 st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
 
 col_prev, col_curr = st.columns(2)
