@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
-import plotly.graph_objects as go
 
 # Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
@@ -81,31 +80,7 @@ if uploaded_file:
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
         st.markdown("## 📊 Zone-Level Hourly Report")
-
-        # Apply conditional formatting using plotly
-        fig = go.Figure(data=[
-            go.Table(
-                header=dict(values=list(zone_hour_df.columns), fill_color='paleturquoise', align='left'),
-                cells=dict(
-                    values=[zone_hour_df[col] for col in zone_hour_df.columns],
-                    fill_color=[
-                        ['white'] * len(zone_hour_df) for _ in zone_hour_df.columns[:-4]
-                    ] + [
-                        [
-                            '#ffe6e6' if val < 1 else '#e6ffe6'
-                            for val in zone_hour_df['Avg_Orders']
-                        ],
-                        [
-                            '#e6f2ff' if val < 10 else '#ccffcc'
-                            for val in zone_hour_df['Avg_Login_Mins']
-                        ],
-                        ['white'] * len(zone_hour_df),
-                        ['white'] * len(zone_hour_df)
-                    ],
-                    align='left')
-            )
-        ])
-        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
         st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
         churn_df = df[(df["Total Login Mins"] >= 180) & (df["Total Orders"] < 2)]
