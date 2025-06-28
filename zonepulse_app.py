@@ -146,7 +146,9 @@ if uploaded_file:
 
             trend_df = de_data[["DT", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
             trend_df["DT"] = pd.to_datetime(trend_df["DT"])
-            trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(x="DT:T", y="value:Q", color="variable:N").properties(title="Login Mins vs Orders – Daily")
+            trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(
+                x="DT:T", y="value:Q", color="variable:N"
+            ).properties(title="Login Mins vs Orders – Daily")
             st.altair_chart(trend_chart, use_container_width=True)
 
             if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]):
@@ -167,17 +169,19 @@ if uploaded_file:
                     metrics_to_plot["DAILY_EARNINGS"] = "Daily Earnings (₹)"
 
                 metric_keys = list(metrics_to_plot.keys())
+                colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728"]
                 for i in range(0, len(metric_keys), 2):
                     cols = st.columns(2)
                     for j in range(2):
                         if i + j < len(metric_keys):
                             key = metric_keys[i + j]
                             title = metrics_to_plot[key]
-                            chart = alt.Chart(week_summary).mark_bar().encode(
-                                x="WEEK:N",
+                            color = colors[(i + j) % len(colors)]
+                            chart = alt.Chart(week_summary).mark_bar(color=color).encode(
+                                x=alt.X("WEEK:N", title="Week"),
                                 y=alt.Y(f"{key}:Q", title=title),
                                 tooltip=["WEEK", key]
-                            ).properties(title=title)
+                            ).properties(title=title).configure_legend(orient="top")
                             cols[j].altair_chart(chart, use_container_width=True)
 
                 breakdown = de_data[["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
