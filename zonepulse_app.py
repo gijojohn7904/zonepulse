@@ -27,13 +27,32 @@ if uploaded_file:
     vertical = st.selectbox("Choose vertical", ["SwiggyFood", "Instamart"])
     df = df[df["Vertical"] == vertical]
 
-    # CITY filter (adjusted to match your column name)
+    # CITY filter
     if "CITY" in df.columns:
         cities = df["CITY"].dropna().unique()
         selected_city = st.selectbox("Choose City", sorted(cities))
         df = df[df["CITY"] == selected_city]
     else:
-        st.error("❌ 'CITY' column not found in uploaded CSV. Please check your file format.")
+        st.error("❌ 'CITY' column not found in uploaded CSV.")
+        st.stop()
+
+    # ZONE filter
+    if "ZONE" in df.columns:
+        zones = df["ZONE"].dropna().unique()
+        selected_zone = st.selectbox("Choose Zone", sorted(zones))
+        df = df[df["ZONE"] == selected_zone]
+    else:
+        st.error("❌ 'ZONE' column not found in uploaded CSV.")
+        st.stop()
+
+    # DE ID filter
+    if "DE_ID" in df.columns:
+        de_ids = df["DE_ID"].dropna().unique()
+        selected_de = st.selectbox("Choose DE ID (optional)", ["All"] + sorted(de_ids.astype(str).tolist()))
+        if selected_de != "All":
+            df = df[df["DE_ID"].astype(str) == selected_de]
+    else:
+        st.error("❌ 'DE_ID' column not found in uploaded CSV.")
         st.stop()
 
     # Total login and order summary
