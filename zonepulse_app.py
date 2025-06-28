@@ -111,10 +111,7 @@ if uploaded_file:
             st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
             st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-        st.markdown("## 🚨 Stress Hours (High Orders, Low Login)")
-        stress_df = zone_hour_df[(zone_hour_df["Avg_Orders"] > 2) & (zone_hour_df["Avg_Login_Mins"] < 20)]
-        st.dataframe(stress_df.sort_values(by="Hour"))
-        st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
+       
 
         # 👤 Individual DE-wise View
         st.markdown("## 👤 Individual DE-wise View")
