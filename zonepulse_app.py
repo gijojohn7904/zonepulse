@@ -101,6 +101,11 @@ if uploaded_file:
             - **Active DEs**: Number of DEs who logged in > 10 mins in that hour
             - **Orders per Hour**: Avg Orders ÷ (Avg Login Mins ÷ 60). Higher = better productivity.
             - **Login Utilization %**: (Avg Orders × 20 ÷ Avg Login Mins) × 100. Cap at 100%.
+
+            **How to Interpret:**
+            - A higher **Orders per Hour** means DEs are efficiently utilized.
+            - A higher **Login Utilization %** indicates that login hours are translating into deliveries.
+            - Use these to identify underperforming hours or zones, and reallocate DEs more effectively.
             """)
 
         st.markdown("## 📊 Zone-Level Hourly Report")
@@ -125,4 +130,41 @@ if uploaded_file:
         st.dataframe(stress_df.sort_values(by="Hour"))
         st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
-        # The rest of the code remains unchanged from here onwards
+        # 🏍️ Individual DE-wise View
+        st.markdown("## 🏍️ Individual DE-wise View")
+        if "DE_ID" in df.columns:
+            de_ids = df["DE_ID"].dropna().astype(str).unique()
+            selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
+            if selected_de != "None":
+                de_data = df[df["DE_ID"].astype(str) == selected_de]
+                st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
+                st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
+
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("🔕️ Active Days", de_data.shape[0])
+                col2.metric("⏱️ Total Login Hrs", round(de_data["TOTAL LOGIN MINS"].sum() / 60, 2))
+                col3.metric("🔵️ Total Orders", int(de_data["TOTAL ORDERS"].sum()))
+                idle_ratio = de_data["TOTAL LOGIN MINS"].sum() / (de_data["TOTAL ORDERS"].sum() * 20) if de_data["TOTAL ORDERS"].sum() > 0 else 0
+                col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2))
+
+                st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+                chart_df = de_data.sort_values("DT")
+                base = alt.Chart(chart_df).encode(x="DT:T")
+
+                login_line = base.mark_line(color="#1f77b4").encode(
+                    y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+                    tooltip=["DT", "TOTAL LOGIN MINS"]
+                )
+
+                order_line = base.mark_line(color="#ff7f0e").encode(
+                    y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+                    tooltip=["DT", "TOTAL ORDERS"]
+                )
+
+                st.altair_chart(
+                    alt.layer(login_line, order_line).resolve_scale(y="independent"),
+                    use_container_width=True
+                )
+
+else:
+    st.info("👆 Upload your DE Order vs Login File to get started.")
