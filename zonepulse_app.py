@@ -96,23 +96,21 @@ if uploaded_file:
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
 
-          if vertical == "IM":
-    # Use IM-specific logic
-    zone_group["Recommendation"] = zone_group.apply(
-        lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1.2 and row["Login_Utilization_%"] < 30)
-        else "🔴 Understaffed" if (row["Orders_per_Hour"] > 2.2 and row["Login_Utilization_%"] > 70)
-        else "✅ Balanced",
-        axis=1
-    )
-else:
-    # Use SwiggyFood logic
-    zone_group["Recommendation"] = zone_group.apply(
-        lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
-        else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
-        else "✅ Balanced",
-        axis=1
-    )
-
+            # ✅ FIXED vertical-specific recommendation logic
+            if vertical == "Instamart":
+                zone_group["Recommendation"] = zone_group.apply(
+                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1.2 and row["Login_Utilization_%"] < 30)
+                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 2.2 and row["Login_Utilization_%"] > 70)
+                    else "✅ Balanced",
+                    axis=1
+                )
+            else:  # SwiggyFood
+                zone_group["Recommendation"] = zone_group.apply(
+                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
+                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
+                    else "✅ Balanced",
+                    axis=1
+                )
 
             hourly_data.append(zone_group)
 
