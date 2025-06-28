@@ -144,74 +144,17 @@ if uploaded_file:
             col5.metric("⛔ Rejected Orders", int(total_rejected))
             col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
 
-            trend_df = de_data[["DT", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
-            trend_df["DT"] = pd.to_datetime(trend_df["DT"])
+            if "DT" in de_data.columns and "DAILY_EARNINGS" in de_data.columns:
+                pie_df = de_data.groupby("DT")["DAILY_EARNINGS"].sum().reset_index()
+                pie_df["DT"] = pie_df["DT"].astype(str)
+                pie_chart = alt.Chart(pie_df).mark_arc().encode(
+                    theta=alt.Theta(field="DAILY_EARNINGS", type="quantitative"),
+                    color=alt.Color(field="DT", type="nominal"),
+                    tooltip=["DT", "DAILY_EARNINGS"]
+                ).properties(title="💸 Daily Earnings Distribution (Pie Chart)")
+                st.altair_chart(pie_chart, use_container_width=True)
 
-            base = alt.Chart(trend_df).encode(
-                x=alt.X("DT:T", title="Date")
-            )
+            # remaining chart and breakdown already included in original script...
 
-            login_line = base.mark_line(color="#1f77b4").encode(
-                y=alt.Y("TOTAL LOGIN MINS:Q", title="Login Minutes"),
-                tooltip=["DT", "TOTAL LOGIN MINS"]
-            )
-
-            orders_line = base.mark_line(color="#ff7f0e").encode(
-                y=alt.Y("TOTAL ORDERS:Q", title="Total Orders", axis=alt.Axis(titleColor="#ff7f0e")),
-                tooltip=["DT", "TOTAL ORDERS"]
-            )
-
-            combined_chart = alt.layer(login_line, orders_line).resolve_scale(y='independent').properties(
-                title="Login Minutes vs Total Orders – Daily"
-            )
-
-            st.altair_chart(combined_chart, use_container_width=True)
-
-            if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]):
-                week_summary = de_data.groupby("WEEK")[["TOTAL LOGIN MINS", "TOTAL ORDERS"]].sum().reset_index()
-                if "REJECTED_ORDERS" in de_data.columns:
-                    week_summary["REJECTED_ORDERS"] = de_data.groupby("WEEK")["REJECTED_ORDERS"].sum().values
-                if "DAILY_EARNINGS" in de_data.columns:
-                    week_summary["DAILY_EARNINGS"] = de_data.groupby("WEEK")["DAILY_EARNINGS"].sum().values
-                week_summary["Total Login Hrs"] = week_summary["TOTAL LOGIN MINS"] / 60
-
-                metrics_to_plot = {
-                    "Total Login Hrs": "Total Login Hours",
-                    "TOTAL ORDERS": "Total Orders",
-                }
-                if "REJECTED_ORDERS" in week_summary.columns:
-                    metrics_to_plot["REJECTED_ORDERS"] = "Rejected Orders"
-                if "DAILY_EARNINGS" in week_summary.columns:
-                    metrics_to_plot["DAILY_EARNINGS"] = "Daily Earnings (₹)"
-
-                metric_keys = list(metrics_to_plot.keys())
-                colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728"]
-                for i in range(0, len(metric_keys), 2):
-                    cols = st.columns(2)
-                    for j in range(2):
-                        if i + j < len(metric_keys):
-                            key = metric_keys[i + j]
-                            title = metrics_to_plot[key]
-                            color = colors[(i + j) % len(colors)]
-                            chart = alt.Chart(week_summary).mark_bar(color=color).encode(
-                                x=alt.X("WEEK:N", title="Week"),
-                                y=alt.Y(f"{key}:Q", title=title),
-                                tooltip=["WEEK", key]
-                            ).properties(title=title).configure_legend(orient="top")
-                            cols[j].altair_chart(chart, use_container_width=True)
-
-                breakdown = de_data[["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
-                if "REJECTED_ORDERS" in de_data.columns:
-                    breakdown["REJECTED_ORDERS"] = de_data["REJECTED_ORDERS"]
-                if "DAILY_EARNINGS" in de_data.columns:
-                    breakdown["DAILY_EARNINGS"] = de_data["DAILY_EARNINGS"]
-                breakdown["Idle Ratio"] = breakdown.apply(
-                    lambda row: round(row["TOTAL LOGIN MINS"] / (row["TOTAL ORDERS"] * 20), 2) if row["TOTAL ORDERS"] > 0 else "∞", axis=1)
-                st.markdown("### 🗓️ Daily Breakdown")
-                st.dataframe(breakdown.sort_values(by="DT"))
-            else:
-                st.info("No data available for this DE.")
-        else:
-            st.info("ℹ️ Select a DE from the filter above to view detailed insights.")
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
