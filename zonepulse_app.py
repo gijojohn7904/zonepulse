@@ -179,15 +179,19 @@ if uploaded_file:
             if "DT" in de_data.columns:
                 line_chart_df = de_data.sort_values("DT")
                 base = alt.Chart(line_chart_df).encode(x="DT:T")
+
                 login_line = base.mark_line(color="#1f77b4").encode(
                     y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
                     tooltip=["DT", "TOTAL LOGIN MINS"]
                 )
+
                 order_line = base.mark_line(color="#ff7f0e").encode(
-                    y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders"), scale=alt.Scale(zero=True)),
+                    y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
                     tooltip=["DT", "TOTAL ORDERS"]
                 )
-                st.altair_chart(login_line + order_line, use_container_width=True)
+
+                dual_axis_chart = alt.layer(login_line, order_line).resolve_scale(y='independent')
+                st.altair_chart(dual_axis_chart, use_container_width=True)
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
