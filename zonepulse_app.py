@@ -8,7 +8,7 @@ st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layo
 
 # Banner
 st.markdown("""
-# 🚦 Fleet Efficiency Monitor | Swiggy
+# 🚦 DE Fleet Efficiency Monitor | Swiggy
 Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-supply across zones.
 """)
 
