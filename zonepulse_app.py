@@ -136,7 +136,7 @@ if uploaded_file:
             de_ids = df["DE_ID"].dropna().astype(str).unique()
             selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
             if selected_de != "None":
-                de_data = df[df["DE_ID"].astype(str) == selected_de]
+                de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
                 st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
                 st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
 
@@ -174,7 +174,7 @@ if uploaded_file:
                     col = chart_cols[i % 2]
                     chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
                         x=alt.X("WEEK", sort=None),
-                        y=metric,
+                        y=alt.Y(metric, type="quantitative"),
                         tooltip=["WEEK", metric]
                     ).properties(title=f"📊 {metric} by Week")
                     col.altair_chart(chart, use_container_width=True)
