@@ -79,6 +79,15 @@ if uploaded_file:
 
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
+
+        with st.expander("ℹ️ Column Logic Explanation"):
+            st.markdown("""
+            - **Avg Orders**: Average orders per DE in that hour (only for DEs logged in during that hour)
+            - **Avg Login Mins**: Average login minutes of DEs who were active that hour
+            - **Active DEs**: Number of DEs who logged in > 0 mins in that hour
+            - **Idle Ratio**: Avg Login Mins ÷ (Avg Orders × 60). Higher means low efficiency.
+            """)
+
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
@@ -109,7 +118,7 @@ if uploaded_file:
         st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
         # Individual DE-wise View
-        st.markdown("## 🤍 Individual DE-wise View")
+        st.markdown("## 🦥 Individual DE-wise View")
 
         if "DE_ID" in df.columns:
             de_ids = df["DE_ID"].dropna().astype(str).unique()
@@ -167,7 +176,5 @@ if uploaded_file:
 
         else:
             st.info("ℹ️ Select a DE from the filter above to view detailed insights.")
-    else:
-        st.warning("No hourly data (FD_ / LH_) found to compute insights.")
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
