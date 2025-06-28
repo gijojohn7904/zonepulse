@@ -73,7 +73,7 @@ if uploaded_file:
 
             zone_group["Hour"] = hr
             zone_group["Idle Ratio"] = zone_group.apply(
-                lambda row: (row["Avg_Login_Mins"] / (row["Avg_Orders"] * 60)) if row["Avg_Orders"] > 0 else np.nan,
+                lambda row: (row["Avg_Login_Mins"] / (row["Avg_Orders"] * 20)) if row["Avg_Orders"] > 0 else np.nan,
                 axis=1)
             hourly_data.append(zone_group)
 
@@ -85,7 +85,7 @@ if uploaded_file:
             - **Avg Orders**: Average orders per DE in that hour (only for DEs logged in during that hour)
             - **Avg Login Mins**: Average login minutes of DEs who were active that hour
             - **Active DEs**: Number of DEs who logged in > 10 mins in that hour
-            - **Idle Ratio**: Avg Login Mins ÷ (Avg Orders × 60). Higher means low efficiency.
+            - **Idle Ratio**: Avg Login Mins ÷ (Avg Orders × 20). Higher means low efficiency.
             """)
 
         st.markdown("## 📊 Zone-Level Hourly Report")
@@ -138,7 +138,7 @@ if uploaded_file:
             total_login = de_data["Total Login Mins"].sum()
             total_orders = de_data["Total Orders"].sum()
             avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
-            idle_ratio = round(total_login / (total_orders * 60), 2) if total_orders > 0 else np.nan
+            idle_ratio = round(total_login / (total_orders * 20), 2) if total_orders > 0 else np.nan
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🔕️ Active Days", total_days)
@@ -168,8 +168,16 @@ if uploaded_file:
             st.altair_chart(bar_chart, use_container_width=True)
 
             breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]].copy()
-            breakdown["Idle Ratio"] = breakdown.apply(
-                lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 60), 2) if row["Total Orders"] > 0 else "∞",
-                axis=1)
-            st.markdown("### 🗓️ Daily Breakdown")
-            st.data
+            if not breakdown.empty:
+                breakdown["Idle Ratio"] = breakdown.apply(
+                    lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 20), 2) if row["Total Orders"] > 0 else "∞",
+                    axis=1)
+                st.markdown("### 🗓️ Daily Breakdown")
+                st.dataframe(breakdown.sort_values(by="DT"))
+            else:
+                st.info("No data available for this DE.")
+
+        else:
+            st.info("ℹ️ Select a DE from the filter above to view detailed insights.")
+else:
+    st.info("👆 Upload your DE Order vs Login File to get started.")
