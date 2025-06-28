@@ -49,7 +49,7 @@ if uploaded_file:
         min_date, max_date = df["DT"].min(), df["DT"].max()
         selected_dates = st.date_input("📆 Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
-            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+            df = df[(df["DT"] >= pd.to_datetime(selected_dates[0])) & (df["DT"] <= pd.to_datetime(selected_dates[1]))]
 
         weeks = sorted(df["WEEK"].dropna().unique())
         selected_weeks = st.multiselect("📅 Filter by Week(s)", weeks, default=weeks)
