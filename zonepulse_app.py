@@ -167,8 +167,8 @@ if uploaded_file:
             ).properties(title="Week-on-Week Performance")
             st.altair_chart(bar_chart, use_container_width=True)
 
-            breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]].copy()
-            if not breakdown.empty:
+            if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "Total Login Mins", "Total Orders"]):
+                breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]].copy()
                 breakdown["Idle Ratio"] = breakdown.apply(
                     lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 20), 2) if row["Total Orders"] > 0 else "∞",
                     axis=1)
