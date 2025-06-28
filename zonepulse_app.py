@@ -61,14 +61,14 @@ if uploaded_file:
         lh_col = f"LH_{str(hr).zfill(2)}"
 
         if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 0]
+            hour_df = df[df[lh_col] > 10]
             if hour_df.empty:
                 continue
 
             zone_group = hour_df.groupby("ZONE").agg(
                 Avg_Orders=(fd_col, 'mean'),
                 Avg_Login_Mins=(lh_col, 'mean'),
-                Active_DEs=(lh_col, lambda x: (x > 0).sum())
+                Active_DEs=(lh_col, lambda x: (x > 10).sum())
             ).reset_index()
 
             zone_group["Hour"] = hr
@@ -84,7 +84,7 @@ if uploaded_file:
             st.markdown("""
             - **Avg Orders**: Average orders per DE in that hour (only for DEs logged in during that hour)
             - **Avg Login Mins**: Average login minutes of DEs who were active that hour
-            - **Active DEs**: Number of DEs who logged in > 0 mins in that hour
+            - **Active DEs**: Number of DEs who logged in > 10 mins in that hour
             - **Idle Ratio**: Avg Login Mins ÷ (Avg Orders × 60). Higher means low efficiency.
             """)
 
@@ -172,9 +172,4 @@ if uploaded_file:
                 lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 60), 2) if row["Total Orders"] > 0 else "∞",
                 axis=1)
             st.markdown("### 🗓️ Daily Breakdown")
-            st.dataframe(breakdown.sort_values(by="DT"))
-
-        else:
-            st.info("ℹ️ Select a DE from the filter above to view detailed insights.")
-else:
-    st.info("👆 Upload your DE Order vs Login File to get started.")
+            st.data
