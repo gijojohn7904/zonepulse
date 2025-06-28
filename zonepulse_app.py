@@ -13,7 +13,7 @@ Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-s
 """)
 
 # File uploader
-uploaded_file = st.file_uploader("📅 Upload your Swiggy DE CSV file", type=["csv"])
+uploaded_file = st.file_uploader("🗕️ Upload your Swiggy DE CSV file", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -37,9 +37,10 @@ if uploaded_file:
         st.stop()
 
     if "ZONE" in df.columns:
-        zones = df["ZONE"].dropna().unique()
-        selected_zone = st.selectbox("📍 Choose Zone", sorted(zones))
-        df = df[df["ZONE"] == selected_zone]
+        zones = sorted(df["ZONE"].dropna().unique())
+        selected_zone = st.selectbox("📍 Choose Zone", ["All"] + zones)
+        if selected_zone != "All":
+            df = df[df["ZONE"] == selected_zone]
     else:
         st.error("❌ 'ZONE' column missing.")
         st.stop()
@@ -47,7 +48,7 @@ if uploaded_file:
     if "DT" in df.columns:
         df["DT"] = pd.to_datetime(df["DT"]).dt.date
         min_date, max_date = df["DT"].min(), df["DT"].max()
-        selected_dates = st.date_input("📆 Filter by Date Range", [min_date, max_date])
+        selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
 
@@ -79,18 +80,19 @@ if uploaded_file:
 
         st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
         churn_df = df[(df["Total Login Mins"] >= 180) & (df["Total Orders"] < 2)]
+        churn_df["Login Hours"] = (churn_df["Total Login Mins"] / 60).round(2)
 
         if churn_df.empty:
             st.info("✅ No churn risk DEs found for the selected filters.")
         else:
             st.dataframe(
-                churn_df[["DE_NAME", "ZONE", "DT", "WEEK", "Total Login Mins", "Total Orders"]]
+                churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders"]]
                     .sort_values(by=["ZONE", "DT", "DE_NAME"])
             )
 
-            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Total Login Mins", "Total Orders"]]
+            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders"]]
             st.download_button(
-                label="📅 Download Churn Risk Report (CSV)",
+                label="🗕 Download Churn Risk Report (CSV)",
                 data=churn_csv.to_csv(index=False),
                 file_name="churn_risk_DEs.csv",
                 mime="text/csv"
@@ -100,14 +102,14 @@ if uploaded_file:
         stress_df = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
 
-        st.download_button("📅 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
+        st.download_button("🗕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
         # Individual DE-wise View
         st.markdown("## 🤍 Individual DE-wise View")
 
         if "DE_ID" in df.columns:
             de_ids = df["DE_ID"].dropna().astype(str).unique()
-            selected_de = st.selectbox("🧐 Choose DE ID to Explore", ["None"] + sorted(de_ids))
+            selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
             selected_de_flag = selected_de != "None"
         else:
             st.error("❌ 'DE_ID' column missing.")
@@ -117,9 +119,8 @@ if uploaded_file:
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
 
-            st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏙️ **City:** {de_data['CITY'].iloc[0]}")
+            st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
 
-            # Summary stats
             total_days = de_data.shape[0]
             total_login = de_data["Total Login Mins"].sum()
             total_orders = de_data["Total Orders"].sum()
@@ -129,10 +130,9 @@ if uploaded_file:
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🗕️ Active Days", total_days)
             col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 1))
-            col3.metric("🙵️ Total Orders", int(total_orders))
+            col3.metric("🔵️ Total Orders", int(total_orders))
             col4.metric("⚖️ Idle Ratio", idle_ratio if not np.isnan(idle_ratio) else "∞")
 
-            # Login vs Orders line chart
             trend_df = de_data[["DT", "Total Login Mins", "Total Orders"]].copy()
             trend_df["DT"] = pd.to_datetime(trend_df["DT"])
             trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(
@@ -142,7 +142,6 @@ if uploaded_file:
             ).properties(title="Login Mins vs Orders – Daily")
             st.altair_chart(trend_chart, use_container_width=True)
 
-            # Weekly performance bar chart
             week_summary = de_data.groupby("WEEK")[["Total Login Mins", "Total Orders"]].sum().reset_index()
             week_summary["Total Login Hrs"] = week_summary["Total Login Mins"] / 60
             bar_chart = alt.Chart(week_summary).transform_fold(
@@ -155,12 +154,11 @@ if uploaded_file:
             ).properties(title="Week-on-Week Performance")
             st.altair_chart(bar_chart, use_container_width=True)
 
-            # Daily breakdown table
             breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]].copy()
             breakdown["Idle Ratio"] = breakdown.apply(
                 lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 60), 2) if row["Total Orders"] > 0 else "∞",
                 axis=1)
-            st.markdown("### 📅 Daily Breakdown")
+            st.markdown("### 🗓️ Daily Breakdown")
             st.dataframe(breakdown.sort_values(by="DT"))
 
         else:
