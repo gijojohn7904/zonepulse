@@ -36,33 +36,39 @@ if uploaded_file:
 
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
-    vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
-    df = df[df["VERTICAL"] == vertical]
+    # 🔄 Two filters per row
+    col1, col2 = st.columns(2)
+    with col1:
+        vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
+        df = df[df["VERTICAL"] == vertical]
 
-    if "CITY" in df.columns:
-        cities = df["CITY"].dropna().unique()
-        selected_city = st.selectbox("🏩 Choose City", sorted(cities))
-        df = df[df["CITY"] == selected_city]
-    else:
-        st.error("❌ 'CITY' column missing.")
-        st.stop()
+    with col2:
+        if "CITY" in df.columns:
+            cities = df["CITY"].dropna().unique()
+            selected_city = st.selectbox("🏩 Choose City", sorted(cities))
+            df = df[df["CITY"] == selected_city]
+        else:
+            st.error("❌ 'CITY' column missing.")
+            st.stop()
 
-    if "ZONE" in df.columns:
-        zones = sorted(df["ZONE"].dropna().unique())
-        selected_zone = st.selectbox("📍 Choose Zone", ["All"] + zones)
-        if selected_zone != "All":
-            df = df[df["ZONE"] == selected_zone]
-    else:
-        st.error("❌ 'ZONE' column missing.")
-        st.stop()
+    col3, col4 = st.columns(2)
+    with col3:
+        if "ZONE" in df.columns:
+            zones = sorted(df["ZONE"].dropna().unique())
+            selected_zone = st.selectbox("📍 Choose Zone", ["All"] + zones)
+            if selected_zone != "All":
+                df = df[df["ZONE"] == selected_zone]
+        else:
+            st.error("❌ 'ZONE' column missing.")
+            st.stop()
 
-    if "DT" in df.columns:
-        df["DT"] = pd.to_datetime(df["DT"]).dt.date
-        min_date, max_date = df["DT"].min(), df["DT"].max()
-        selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
-        if len(selected_dates) == 2:
-            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-
+    with col4:
+        if "DT" in df.columns:
+            df["DT"] = pd.to_datetime(df["DT"]).dt.date
+            min_date, max_date = df["DT"].min(), df["DT"].max()
+            selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
+            if len(selected_dates) == 2:
+                df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
