@@ -150,9 +150,9 @@ if uploaded_file:
 
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("🔕️ Active Days", total_days)
-                col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 1))
+                col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 2))
                 col3.metric("🔵️ Total Orders", int(total_orders))
-                col4.metric("⚖️ Idle Ratio", idle_ratio if not np.isnan(idle_ratio) else "∞")
+                col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
 
                 col5, col6 = st.columns(2)
                 col5.metric("⛔ Rejected Orders", int(total_rejected))
@@ -161,13 +161,13 @@ if uploaded_file:
                 st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
                 de_data["WEEK"] = de_data["WEEK"].astype(str)
                 weekly_df = de_data.groupby("WEEK").agg(
-                    Login_Mins=("TOTAL LOGIN MINS", "sum"),
+                    Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
                     Orders=("TOTAL ORDERS", "sum"),
                     Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
                     Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
                 ).reset_index()
 
-                metrics = ["Login_Mins", "Orders", "Rejections", "Earnings"]
+                metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
                 colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
                 chart_cols = st.columns(2)
                 for i, metric in enumerate(metrics):
