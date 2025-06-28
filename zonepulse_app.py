@@ -137,4 +137,4 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
     else:
-        st.info("✅ No churn risk DEs found for the selected fil
+        st.info("✅ No churn risk DEs found for the selected filters.")
