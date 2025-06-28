@@ -8,8 +8,8 @@ st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layo
 
 # Confidentiality Notice
 st.markdown("""
-<div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;'>
-<b>🚫 Confidentiality Notice:</b><br>
+<div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
+<b>⚠️ Confidentiality Notice by Swiggy:</b><br>
 This dashboard is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
 Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
 Please handle this information responsibly, in accordance with company data policies.
