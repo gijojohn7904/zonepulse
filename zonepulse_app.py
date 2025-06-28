@@ -18,7 +18,7 @@ Please handle this information responsibly, in accordance with company data poli
 
 # Banner
 st.markdown("""
-# 🚦 DE Fleet Efficiency Monitor | Swiggy.ltd
+# 🚦 ZonePulse – DE Supply Efficiency Monitor | Powered by Claude Sonnet 4
 Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-supply across zones.
 """)
 
@@ -154,15 +154,26 @@ if uploaded_file:
             col5.metric("⛔ Rejected Orders", int(total_rejected))
             col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
 
-            if "DT" in de_data.columns and "DAILY_EARNINGS" in de_data.columns:
-                pie_df = de_data.groupby("DT")["DAILY_EARNINGS"].sum().reset_index()
-                pie_df["DT"] = pie_df["DT"].astype(str)
-                pie_chart = alt.Chart(pie_df).mark_arc().encode(
-                    theta=alt.Theta(field="DAILY_EARNINGS", type="quantitative"),
-                    color=alt.Color(field="DT", type="nominal"),
-                    tooltip=["DT", "DAILY_EARNINGS"]
-                ).properties(title="💸 Daily Earnings Distribution (Pie Chart)")
-                st.altair_chart(pie_chart, use_container_width=True)
+            st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
+            de_data["WEEK"] = de_data["WEEK"].astype(str)
+            weekly_df = de_data.groupby("WEEK").agg(
+                Login_Mins=("TOTAL LOGIN MINS", "sum"),
+                Orders=("TOTAL ORDERS", "sum"),
+                Rejections=("REJECTED_ORDERS", "sum"),
+                Earnings=("DAILY_EARNINGS", "sum")
+            ).reset_index()
+
+            metrics = ["Login_Mins", "Orders", "Rejections", "Earnings"]
+            colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
+            chart_cols = st.columns(2)
+            for i, metric in enumerate(metrics):
+                col = chart_cols[i % 2]
+                chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
+                    x=alt.X("WEEK", sort=None),
+                    y=metric,
+                    tooltip=["WEEK", metric]
+                ).properties(title=f"📊 {metric} by Week")
+                col.altair_chart(chart, use_container_width=True)
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
