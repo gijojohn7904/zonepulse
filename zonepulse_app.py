@@ -116,8 +116,8 @@ if uploaded_file:
         st.dataframe(stress_df.sort_values(by="Hour"))
         st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
-        # 🏍️ Individual DE-wise View
-        st.markdown("## 🏍️ Individual DE-wise View")
+        # 👤 Individual DE-wise View
+        st.markdown("## 👤 Individual DE-wise View")
         if "DE_ID" in df.columns:
             de_ids = df["DE_ID"].dropna().astype(str).unique()
             selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
