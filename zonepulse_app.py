@@ -65,7 +65,8 @@ if uploaded_file:
             if hour_df.empty:
                 continue
 
-            zone_group = hour_df.groupby("ZONE")[[fd_col, lh_col]].mean().reset_index()
+            zone_group = hour_df.groupby("ZONE")[[fd_col, lh_col]].agg({fd_col: "mean", lh_col: "mean"}).reset_index()
+            zone_group["Active DEs"] = hour_df.groupby("ZONE")["DE_ID"].count().values
             zone_group["Hour"] = hr
             zone_group.rename(columns={fd_col: "Avg Orders", lh_col: "Avg Login Mins"}, inplace=True)
             zone_group["Idle Ratio"] = zone_group.apply(
