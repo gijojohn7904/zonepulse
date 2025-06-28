@@ -36,9 +36,13 @@ if uploaded_file:
 
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
+    # Row 1 – Vertical and City
+col1, col2 = st.columns(2)
+with col1:
     vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
     df = df[df["VERTICAL"] == vertical]
 
+with col2:
     if "CITY" in df.columns:
         cities = df["CITY"].dropna().unique()
         selected_city = st.selectbox("🏩 Choose City", sorted(cities))
@@ -47,6 +51,9 @@ if uploaded_file:
         st.error("❌ 'CITY' column missing.")
         st.stop()
 
+# Row 2 – Zone and Date Range
+col3, col4 = st.columns(2)
+with col3:
     if "ZONE" in df.columns:
         zones = sorted(df["ZONE"].dropna().unique())
         selected_zone = st.selectbox("📍 Choose Zone", ["All"] + zones)
@@ -56,6 +63,7 @@ if uploaded_file:
         st.error("❌ 'ZONE' column missing.")
         st.stop()
 
+with col4:
     if "DT" in df.columns:
         df["DT"] = pd.to_datetime(df["DT"]).dt.date
         min_date, max_date = df["DT"].min(), df["DT"].max()
