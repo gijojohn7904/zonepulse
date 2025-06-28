@@ -70,7 +70,8 @@ if uploaded_file:
     st.markdown("## 🏍️ Individual DE-wise View")
 
     if "DE_ID" in df.columns:
-        de_ids = df[df["VERTICAL"] == vertical]["DE_ID"].dropna().astype(str).unique()
+        filtered_de_df = df.copy()
+        de_ids = filtered_de_df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
         selected_de_flag = selected_de != "None"
     else:
