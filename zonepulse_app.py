@@ -93,47 +93,7 @@ if uploaded_file:
 
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
-
-if hourly_data:
-    zone_hour_df = pd.concat(hourly_data)
-
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
-
-    # ✅ Zone-Wise FM Suggestions
-    st.markdown("## 🧭 Zone-Wise Deployment Suggestions for FMs")
-    st.markdown("""
-    Use this section to reallocate fleet intelligently:
-    - 🔥 High demand, low login → Add DEs
-    - ⚠️ Low demand, high login → Reduce DEs
-    - ✅ Balanced → No action needed
-    """)
-
-    deployment_df = zone_hour_df.groupby("ZONE").agg(
-        Avg_Orders=("Avg_Orders", "mean"),
-        Avg_Login_Mins=("Avg_Login_Mins", "mean"),
-        Active_DEs=("Active_DEs", "mean")
-    ).reset_index()
-
-    def generate_suggestion(row):
-        if row["Avg_Orders"] < 1.5 and row["Avg_Login_Mins"] > 45:
-            return "⚠️ Oversupplied – Reduce DEs"
-        elif row["Avg_Orders"] >= 2.5 and row["Avg_Login_Mins"] < 25:
-            return "🔥 Undersupplied – Add DEs"
-        else:
-            return "✅ Balanced"
-
-    deployment_df["Suggestion"] = deployment_df.apply(generate_suggestion, axis=1)
-
-    category_order = ["🔥 Undersupplied – Add DEs", "⚠️ Oversupplied – Reduce DEs", "✅ Balanced"]
-    deployment_df["Suggestion"] = pd.Categorical(deployment_df["Suggestion"], categories=category_order, ordered=True)
-    deployment_df = deployment_df.sort_values(by="Suggestion")
-
-    deployment_df = deployment_df.round(2)
-    st.dataframe(deployment_df)
-    st.download_button("📥 Download FM Zone Suggestions", deployment_df.to_csv(index=False), file_name="fm_zone_suggestions.csv", mime="text/csv")
-
-
+    
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
