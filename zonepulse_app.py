@@ -69,7 +69,7 @@ if uploaded_file:
         lh_col = f"LH_{str(hr).zfill(2)}"
 
         if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 0]  # only DEs logged in that hour
+            hour_df = df[df[lh_col] > 10]  # only DEs logged in that hour
             if hour_df.empty:
                 continue
 
