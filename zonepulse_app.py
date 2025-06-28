@@ -13,7 +13,7 @@ Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-s
 """)
 
 # File uploader
-uploaded_file = st.file_uploader("🗕️ Upload your Swiggy DE CSV file", type=["csv"])
+uploaded_file = st.file_uploader("🔕️ Upload your Swiggy DE CSV file", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -65,9 +65,10 @@ if uploaded_file:
             if hour_df.empty:
                 continue
 
-            zone_group = hour_df.groupby("ZONE")[[fd_col, lh_col]].mean().reset_index()
+            zone_group = hour_df.groupby("ZONE")[[fd_col, lh_col]].agg(
+                {fd_col: 'mean', lh_col: ['mean', 'count']}).reset_index()
+            zone_group.columns = ["ZONE", "Avg Orders", "Avg Login Mins", "Active DEs"]
             zone_group["Hour"] = hr
-            zone_group.rename(columns={fd_col: "Avg Orders", lh_col: "Avg Login Mins"}, inplace=True)
             zone_group["Idle Ratio"] = zone_group.apply(
                 lambda row: (row["Avg Login Mins"] / (row["Avg Orders"] * 60)) if row["Avg Orders"] > 0 else np.nan,
                 axis=1)
@@ -92,7 +93,7 @@ if uploaded_file:
 
             churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders"]]
             st.download_button(
-                label="🗕 Download Churn Risk Report (CSV)",
+                label="🔕 Download Churn Risk Report (CSV)",
                 data=churn_csv.to_csv(index=False),
                 file_name="churn_risk_DEs.csv",
                 mime="text/csv"
@@ -102,7 +103,7 @@ if uploaded_file:
         stress_df = zone_hour_df[(zone_hour_df["Avg Orders"] > 2) & (zone_hour_df["Avg Login Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
 
-        st.download_button("🗕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
+        st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
         # Individual DE-wise View
         st.markdown("## 🤍 Individual DE-wise View")
@@ -128,7 +129,7 @@ if uploaded_file:
             idle_ratio = round(total_login / (total_orders * 60), 2) if total_orders > 0 else np.nan
 
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("🗕️ Active Days", total_days)
+            col1.metric("🔕️ Active Days", total_days)
             col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 1))
             col3.metric("🔵️ Total Orders", int(total_orders))
             col4.metric("⚖️ Idle Ratio", idle_ratio if not np.isnan(idle_ratio) else "∞")
