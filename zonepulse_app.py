@@ -99,11 +99,11 @@ if uploaded_file:
             st.info("✅ No churn risk DEs found for the selected filters.")
         else:
             st.dataframe(
-                churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders"]]
+                churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]]
                     .sort_values(by=["ZONE", "DT", "DE_NAME"])
             )
 
-            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders"]]
+            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]]
             st.download_button(
                 label="🔕 Download Churn Risk Report (CSV)",
                 data=churn_csv.to_csv(index=False),
@@ -139,12 +139,18 @@ if uploaded_file:
             total_orders = de_data["Total Orders"].sum()
             avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
             idle_ratio = round(total_login / (total_orders * 20), 2) if total_orders > 0 else np.nan
+            total_rejected = de_data["REJECTED_ORDERS"].sum()
+            total_earnings = de_data["DAILY_EARNINGS"].sum()
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🔕️ Active Days", total_days)
             col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 1))
             col3.metric("🔵️ Total Orders", int(total_orders))
             col4.metric("⚖️ Idle Ratio", idle_ratio if not np.isnan(idle_ratio) else "∞")
+
+            col5, col6 = st.columns(2)
+            col5.metric("⛔ Rejected Orders", int(total_rejected))
+            col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
 
             trend_df = de_data[["DT", "Total Login Mins", "Total Orders"]].copy()
             trend_df["DT"] = pd.to_datetime(trend_df["DT"])
@@ -155,10 +161,11 @@ if uploaded_file:
             ).properties(title="Login Mins vs Orders – Daily")
             st.altair_chart(trend_chart, use_container_width=True)
 
-            week_summary = de_data.groupby("WEEK")[["Total Login Mins", "Total Orders"]].sum().reset_index()
+            week_summary = de_data.groupby("WEEK")[["Total Login Mins", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]].sum().reset_index()
             week_summary["Total Login Hrs"] = week_summary["Total Login Mins"] / 60
+
             bar_chart = alt.Chart(week_summary).transform_fold(
-                ["Total Login Hrs", "Total Orders"]
+                ["Total Login Hrs", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]
             ).mark_bar().encode(
                 x="WEEK:N",
                 y="value:Q",
@@ -168,7 +175,7 @@ if uploaded_file:
             st.altair_chart(bar_chart, use_container_width=True)
 
             if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "Total Login Mins", "Total Orders"]):
-                breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders"]].copy()
+                breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]].copy()
                 breakdown["Idle Ratio"] = breakdown.apply(
                     lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 20), 2) if row["Total Orders"] > 0 else "∞",
                     axis=1)
