@@ -204,7 +204,7 @@ else:
 
 
 
-st.markdown("## 🙈 No-Show DEs – Previously Active, Not Logged In Now")
+st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
 
 col_prev, col_curr = st.columns(2)
 with col_prev:
