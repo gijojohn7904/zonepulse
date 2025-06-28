@@ -1,4 +1,12 @@
 import streamlit as st
+def login():
+    st.title("🔐 Login to ZonePulse")
+    password = st.text_input("Enter Password", type="password")
+    if password != "Swiggy@7904":
+        st.warning("Please enter the correct password to continue.")
+        st.stop()
+
+login()
 import pandas as pd
 import numpy as np
 import altair as alt
