@@ -4,7 +4,7 @@ import numpy as np
 import altair as alt
 
 # Page config
-st.set_page_config(page_title="DE Supply Efficiency Monitor - Swiggy", layout="wide")
+st.set_page_config(page_title="DE Supply Efficiency Monitor - Swiggy", layout="wide") 
 
 # Confidentiality Notice
 st.markdown("""
