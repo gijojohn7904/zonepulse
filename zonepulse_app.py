@@ -17,16 +17,17 @@ uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", t
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
+    df.columns = df.columns.str.strip().str.upper()
 
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
-    df["Vertical"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
+    df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
     vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
-    df = df[df["Vertical"] == vertical]
+    df = df[df["VERTICAL"] == vertical]
 
     if "CITY" in df.columns:
         cities = df["CITY"].dropna().unique()
@@ -52,8 +53,8 @@ if uploaded_file:
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
 
-    df["Total Login Mins"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
-    df["Total Orders"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
+    df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
+    df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     hourly_data = []
     for hr in range(24):
@@ -92,32 +93,24 @@ if uploaded_file:
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
         st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
-        churn_df = df[(df["Total Login Mins"] >= 180) & (df["Total Orders"] < 2)]
-        churn_df["Login Hours"] = (churn_df["Total Login Mins"] / 60).round(2)
+        churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
+        churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
 
         if churn_df.empty:
             st.info("✅ No churn risk DEs found for the selected filters.")
         else:
-            st.dataframe(
-                churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]]
-                    .sort_values(by=["ZONE", "DT", "DE_NAME"])
-            )
+            churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
+            if "REJECTED_ORDERS" in df.columns: churn_cols.append("REJECTED_ORDERS")
+            if "DAILY_EARNINGS" in df.columns: churn_cols.append("DAILY_EARNINGS")
 
-            churn_csv = churn_df[["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]]
-            st.download_button(
-                label="🔕 Download Churn Risk Report (CSV)",
-                data=churn_csv.to_csv(index=False),
-                file_name="churn_risk_DEs.csv",
-                mime="text/csv"
-            )
+            st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
+            st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
         st.markdown("## 🚨 Stress Hours (High Orders, Low Login)")
         stress_df = zone_hour_df[(zone_hour_df["Avg_Orders"] > 2) & (zone_hour_df["Avg_Login_Mins"] < 20)]
         st.dataframe(stress_df.sort_values(by="Hour"))
-
         st.download_button("🔕 Download Zone Report", zone_hour_df.to_csv(index=False), file_name="zonepulse_hourly.csv")
 
-        # Individual DE-wise View
         st.markdown("## 🏍️ Individual DE-wise View")
 
         if "DE_ID" in df.columns:
@@ -131,16 +124,15 @@ if uploaded_file:
         if selected_de_flag:
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             st.markdown(f"### DE: `{selected_de}` – {de_data['DE_NAME'].iloc[0]}")
-
             st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
 
             total_days = de_data.shape[0]
-            total_login = de_data["Total Login Mins"].sum()
-            total_orders = de_data["Total Orders"].sum()
+            total_login = de_data["TOTAL LOGIN MINS"].sum()
+            total_orders = de_data["TOTAL ORDERS"].sum()
             avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
             idle_ratio = round(total_login / (total_orders * 20), 2) if total_orders > 0 else np.nan
-            total_rejected = de_data["REJECTED_ORDERS"].sum()
-            total_earnings = de_data["DAILY_EARNINGS"].sum()
+            total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
+            total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🔕️ Active Days", total_days)
@@ -152,38 +144,39 @@ if uploaded_file:
             col5.metric("⛔ Rejected Orders", int(total_rejected))
             col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
 
-            trend_df = de_data[["DT", "Total Login Mins", "Total Orders"]].copy()
+            trend_df = de_data[["DT", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
             trend_df["DT"] = pd.to_datetime(trend_df["DT"])
-            trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(
-                x="DT:T",
-                y="value:Q",
-                color="variable:N"
-            ).properties(title="Login Mins vs Orders – Daily")
+            trend_chart = alt.Chart(trend_df.melt("DT")).mark_line(point=True).encode(x="DT:T", y="value:Q", color="variable:N").properties(title="Login Mins vs Orders – Daily")
             st.altair_chart(trend_chart, use_container_width=True)
 
-            week_summary = de_data.groupby("WEEK")[["Total Login Mins", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]].sum().reset_index()
-            week_summary["Total Login Hrs"] = week_summary["Total Login Mins"] / 60
+            if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]):
+                week_summary = de_data.groupby("WEEK")[["TOTAL LOGIN MINS", "TOTAL ORDERS"]].sum().reset_index()
+                if "REJECTED_ORDERS" in de_data.columns:
+                    week_summary["REJECTED_ORDERS"] = de_data.groupby("WEEK")["REJECTED_ORDERS"].sum().values
+                if "DAILY_EARNINGS" in de_data.columns:
+                    week_summary["DAILY_EARNINGS"] = de_data.groupby("WEEK")["DAILY_EARNINGS"].sum().values
+                week_summary["Total Login Hrs"] = week_summary["TOTAL LOGIN MINS"] / 60
 
-            bar_chart = alt.Chart(week_summary).transform_fold(
-                ["Total Login Hrs", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]
-            ).mark_bar().encode(
-                x="WEEK:N",
-                y="value:Q",
-                color="key:N",
-                column=alt.Column("key:N")
-            ).properties(title="Week-on-Week Performance")
-            st.altair_chart(bar_chart, use_container_width=True)
+                value_cols = ["Total Login Hrs", "TOTAL ORDERS"]
+                if "REJECTED_ORDERS" in week_summary.columns: value_cols.append("REJECTED_ORDERS")
+                if "DAILY_EARNINGS" in week_summary.columns: value_cols.append("DAILY_EARNINGS")
 
-            if not de_data.empty and all(col in de_data.columns for col in ["DT", "WEEK", "Total Login Mins", "Total Orders"]):
-                breakdown = de_data[["DT", "WEEK", "Total Login Mins", "Total Orders", "REJECTED_ORDERS", "DAILY_EARNINGS"]].copy()
+                bar_chart = alt.Chart(week_summary).transform_fold(value_cols).mark_bar().encode(
+                    x="WEEK:N", y="value:Q", color="key:N", column=alt.Column("key:N")
+                ).properties(title="Week-on-Week Performance")
+                st.altair_chart(bar_chart, use_container_width=True)
+
+                breakdown = de_data[["DT", "WEEK", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].copy()
+                if "REJECTED_ORDERS" in de_data.columns:
+                    breakdown["REJECTED_ORDERS"] = de_data["REJECTED_ORDERS"]
+                if "DAILY_EARNINGS" in de_data.columns:
+                    breakdown["DAILY_EARNINGS"] = de_data["DAILY_EARNINGS"]
                 breakdown["Idle Ratio"] = breakdown.apply(
-                    lambda row: round(row["Total Login Mins"] / (row["Total Orders"] * 20), 2) if row["Total Orders"] > 0 else "∞",
-                    axis=1)
+                    lambda row: round(row["TOTAL LOGIN MINS"] / (row["TOTAL ORDERS"] * 20), 2) if row["TOTAL ORDERS"] > 0 else "∞", axis=1)
                 st.markdown("### 🗓️ Daily Breakdown")
                 st.dataframe(breakdown.sort_values(by="DT"))
             else:
                 st.info("No data available for this DE.")
-
         else:
             st.info("ℹ️ Select a DE from the filter above to view detailed insights.")
 else:
