@@ -91,26 +91,26 @@ if uploaded_file:
 
             zone_group["Hour"] = hr
             zone_group["Orders_per_DE"] = zone_group.apply(
-                lambda row: row["Total_Orders"] / row["Active_DEs"] if row["Active_DEs"] > 0 else 0,
-                axis=1
-            )
-            zone_group["Login_Utilization_%"] = zone_group.apply(
-                lambda row: min(100, ((row["Total_Orders"] * 25) / (row["Avg_Login_Mins"] * row["Active_DEs"])) * 100)
-                if row["Avg_Login_Mins"] > 0 and row["Active_DEs"] > 0 else 0,
-                axis=1
-            )
+                lambda row: round(row["Total_Orders"] / row["Active_DEs"], 2) if row["Active_DEs"] > 0 else 0,
+                axis=1)
 
+            zone_group["Login_Utilization_%"] = zone_group.apply(
+                lambda row: min(100, (row["Total_Orders"] * 25 / (row["Avg_Login_Mins"] * row["Active_DEs"])) * 100)
+                if row["Avg_Login_Mins"] > 0 and row["Active_DEs"] > 0 else 0,
+                axis=1)
+
+            # Updated Recommendation Logic
             if vertical == "Instamart":
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Login_Utilization_%"] < 30 and row["Orders_per_DE"] < 1.2)
-                    else "🔴 Understaffed" if (row["Login_Utilization_%"] > 70 and row["Orders_per_DE"] > 2.2)
+                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_DE"] < 1.2 and row["Login_Utilization_%"] < 30)
+                    else "🔴 Understaffed" if (row["Orders_per_DE"] > 2.2 and row["Login_Utilization_%"] > 70)
                     else "✅ Balanced",
                     axis=1
                 )
-            else:
+            else:  # SwiggyFood
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Login_Utilization_%"] < 25 and row["Orders_per_DE"] < 0.6)
-                    else "🔴 Understaffed" if (row["Login_Utilization_%"] > 57 and row["Orders_per_DE"] > 1.5)
+                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_DE"] < 0.6 and row["Login_Utilization_%"] < 25)
+                    else "🔴 Understaffed" if (row["Orders_per_DE"] > 1.5 and row["Login_Utilization_%"] > 57)
                     else "✅ Balanced",
                     axis=1
                 )
@@ -121,3 +121,5 @@ if uploaded_file:
         zone_hour_df = pd.concat(hourly_data)
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+
+# ✅ Rest of the script untouched
