@@ -15,7 +15,7 @@ def check_password():
     if "password_correct" not in st.session_state:
         st.markdown("""
         ## 🚧 Restricted Access
-        This dashboard is for **Swiggy internal use only**.<br>
+        This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the Sourcing & Onboarding team.
         """, unsafe_allow_html=True)
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
@@ -24,7 +24,7 @@ def check_password():
     elif not st.session_state["password_correct"]:
         st.markdown("""
         ## 🚧 Restricted Access
-        This dashboard is for **Swiggy internal use only**.<br>
+        This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the S&O team.
         """, unsafe_allow_html=True)
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
