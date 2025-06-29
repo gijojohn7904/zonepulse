@@ -1,15 +1,14 @@
+import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
-import streamlit.components.v1 as components
 
-# 🔒 Password protection
 def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]
+            del st.session_state["password"]  # Wipe it out after use
         else:
             st.session_state["password_correct"] = False
 
@@ -21,6 +20,7 @@ def check_password():
         """, unsafe_allow_html=True)
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.stop()
+
     elif not st.session_state["password_correct"]:
         st.markdown("""
         ## 🚧 Restricted Access
@@ -31,15 +31,11 @@ def check_password():
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
-check_password()
 
-# ✅ Page settings
+check_password()  # 🔒 Call this function to enforce password
+
+# Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
-
-# Main body
-st.write("Main Area")
-
-
 
 # Confidentiality Notice
 st.markdown("""
