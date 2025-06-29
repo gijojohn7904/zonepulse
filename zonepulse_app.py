@@ -83,15 +83,13 @@ if uploaded_file:
                 continue
 
             zone_group = hour_df.groupby("ZONE").agg(
-                Avg_Orders=(fd_col, 'mean'),
+               Total_Orders=(fd_col, 'sum'),
                 Avg_Login_Mins=(lh_col, 'mean'),
                 Active_DEs=(lh_col, lambda x: (x > 10).sum())
             ).reset_index()
 
             zone_group["Hour"] = hr
-            zone_group["Orders_per_Hour"] = zone_group.apply(
-                lambda row: row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) if row["Avg_Login_Mins"] > 0 else np.nan,
-                axis=1)
+            zone_group["Orders_per_Hour"] = zone_group["Total_Orders"]
             zone_group["Login_Utilization_%"] = zone_group.apply(
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
