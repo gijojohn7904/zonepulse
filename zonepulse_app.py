@@ -3,6 +3,38 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+
+
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == st.secrets["auth"]["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Wipe it out after use
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.markdown("""
+        ## 🚧 Restricted Access
+        This tool is for **Swiggy internal use only**.<br>
+        Please enter the access password provided by the Sourcing & Onboarding team.
+        """, unsafe_allow_html=True)
+        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
+        st.stop()
+
+    elif not st.session_state["password_correct"]:
+        st.markdown("""
+        ## 🚧 Restricted Access
+        This tool is for **Swiggy internal use only**.<br>
+        Please enter the access password provided by the S&O team.
+        """, unsafe_allow_html=True)
+        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
+        st.error("❌ Incorrect password. Please try again.")
+        st.stop()
+
+
+check_password()  # 🔒 Call this function to enforce password
+
 with st.sidebar.expander("ℹ️ Guide: Using ZonePulse", expanded=False):
     st.markdown("""
     <style>
@@ -60,36 +92,6 @@ with st.sidebar.expander("ℹ️ Guide: Using ZonePulse", expanded=False):
         </p>
     </div>
     """, unsafe_allow_html=True)
-
-def check_password():
-    def password_entered():
-        if st.session_state["password"] == st.secrets["auth"]["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Wipe it out after use
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        st.markdown("""
-        ## 🚧 Restricted Access
-        This tool is for **Swiggy internal use only**.<br>
-        Please enter the access password provided by the Sourcing & Onboarding team.
-        """, unsafe_allow_html=True)
-        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
-        st.stop()
-
-    elif not st.session_state["password_correct"]:
-        st.markdown("""
-        ## 🚧 Restricted Access
-        This tool is for **Swiggy internal use only**.<br>
-        Please enter the access password provided by the S&O team.
-        """, unsafe_allow_html=True)
-        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
-        st.error("❌ Incorrect password. Please try again.")
-        st.stop()
-
-
-check_password()  # 🔒 Call this function to enforce password
 
 # Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
