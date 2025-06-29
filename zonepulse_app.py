@@ -4,10 +4,7 @@ import numpy as np
 import altair as alt
 import streamlit.components.v1 as components
 
-# ✅ Page config – only one allowed
-st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
-
-# 🔐 Password protection
+# 🔒 Password protection
 def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
@@ -18,7 +15,7 @@ def check_password():
 
     if "password_correct" not in st.session_state:
         st.markdown("""
-        ## 🚧 Restricted Access  
+        ## 🚧 Restricted Access
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the Sourcing & Onboarding team.
         """, unsafe_allow_html=True)
@@ -26,7 +23,7 @@ def check_password():
         st.stop()
     elif not st.session_state["password_correct"]:
         st.markdown("""
-        ## 🚧 Restricted Access  
+        ## 🚧 Restricted Access
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the S&O team.
         """, unsafe_allow_html=True)
@@ -36,31 +33,37 @@ def check_password():
 
 check_password()
 
-# 📌 Sidebar Header & Guide
-with st.sidebar:
-    st.markdown("### 👋 Hello Gijo")
+# ✅ Page settings
+st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 
-    if st.checkbox("ℹ️ Show Guide"):
-        st.markdown("""
-        #### 📌 ZonePulse Usage Guide
-        **Step 1:** Upload your `Order vs Login` CSV  
-        **Step 2:** Filter by Vertical, City, Zone, Date  
-        **Step 3:** Explore tabs:
-        - 📊 Zone-Level Report
-        - ⚠️ Churn Risk DEs
-        - 👤 DE-wise Drill-down
-        - 🤔 No-Show Detection
+# ✅ Sidebar
+st.sidebar.markdown("### 👋 Hello Gijo")
 
-        **Tips:**
-        - High Login, Low Orders → Attrition risk  
-        - Login Util% = Health of supply-demand match  
+with st.sidebar.expander("ℹ️ Guide – Click to Expand"):
+    st.markdown("""
+    ### 🛠️ How to Use ZonePulse
 
-        _Built for S&O Ops with ❤️_
-        """)
+    **1. Upload CSV File**
+    - Must include columns like `LH_00`, `FD_01`, `CITY`, `ZONE`, etc.
 
+    **2. Apply Filters**
+    - 🔃 Select Vertical (SwiggyFood / Instamart)  
+    - 🏩 Filter by City, 📍 Zone, and 🗓️ Date Range
 
+    **3. Explore Sections**
+    - 📊 Zone-Level Report  
+    - ⚠️ Churn Risk DEs  
+    - 👤 DE-wise View  
+    - 🤔 No-Show DEs
 
-# ✅ Page placeholder
+    **🧠 Key Metrics**
+    - Login Util % = (Orders × 25 / Login mins) × 100  
+    - ⚠️ Overstaffed: Low orders & low utilization  
+    - 🔴 Understaffed: High orders per DE  
+    - ✅ Balanced: Optimal performance
+    """, unsafe_allow_html=True)
+
+# Main body
 st.write("Main Area")
 
 
