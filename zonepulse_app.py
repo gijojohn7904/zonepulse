@@ -201,6 +201,33 @@ if uploaded_file:
                     use_container_width=True
                 )
 
+                st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
+                hourly_records = []
+
+                for _, row in de_data.iterrows():
+                    date = row["DT"]
+                    for hr in range(24):
+                        lh_col = f"LH_{str(hr).zfill(2)}"
+                        fd_col = f"FD_{str(hr).zfill(2)}"
+                        if lh_col in row and fd_col in row:
+                            login_min = row[lh_col]
+                            orders = row[fd_col]
+                            if login_min > 0 or orders > 0:
+                                hourly_records.append({
+                                    "Date": date,
+                                    "Hour": f"{str(hr).zfill(2)}:00",
+                                    "Login Minutes": login_min,
+                                    "Orders": orders
+                                })
+
+                if hourly_records:
+                    hourly_df = pd.DataFrame(hourly_records)
+                    st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
+                    st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False), file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
+                else:
+                    st.info("ℹ️ No hourly data found for this DE.")
+
+
     # ---------------- No Show Section ----------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
