@@ -19,7 +19,7 @@ Please handle this information responsibly, in accordance with company data poli
 # Banner
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
-Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-supply across zones.
+Monitor DE behavior, optimize login-to-order ratios, and ensure supply-demand harmony across every zone.
 """)
 
 # File uploader
