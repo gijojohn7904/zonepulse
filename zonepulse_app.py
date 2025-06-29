@@ -1,30 +1,32 @@
-import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+import streamlit.components.v1 as components
 
+# ✅ Page config – only one allowed
+st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 
+# 🔐 Password protection
 def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Wipe it out after use
+            del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
         st.markdown("""
-        ## 🚧 Restricted Access
+        ## 🚧 Restricted Access  
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the Sourcing & Onboarding team.
         """, unsafe_allow_html=True)
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.stop()
-
     elif not st.session_state["password_correct"]:
         st.markdown("""
-        ## 🚧 Restricted Access
+        ## 🚧 Restricted Access  
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the S&O team.
         """, unsafe_allow_html=True)
@@ -32,20 +34,46 @@ def check_password():
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
+check_password()
 
-check_password()  # 🔒 Call this function to enforce password
-
-# Page config
-st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
-
-import streamlit as st
-
-st.set_page_config(page_title="ZonePulse", layout="wide")
-
+# 📌 Sidebar Header & Guide
 st.sidebar.markdown("### 👋 Hello Gijo")
-st.sidebar.markdown("""<details><summary>ℹ️ Guide</summary>This is a test guide</details>""", unsafe_allow_html=True)
+st.sidebar.markdown("""
+<details style='font-family: "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6;'>
+<summary style='font-weight: bold; font-size: 15px;'>ℹ️ <b>Guide: Using ZonePulse</b></summary>
 
+<br>
+<b>📥 Step 1: Upload DE CSV</b><br>
+Include LH_00–LH_23, FD_00–FD_23, DE_ID, DE_NAME, ZONE, CITY, DT, WEEK<br><br>
+
+<b>🎛️ Step 2: Apply Filters</b><br>
+Vertical → City → Zone → Date Range<br><br>
+
+<b>📊 Dashboard Sections</b><br>
+- Zone-Level Hourly Report<br>
+- Potential Churn DEs<br>
+- DE Drilldown View<br>
+- No-Show Tracker<br><br>
+
+<b>💡 Tips</b><br>
+- High login, low order = churn risk<br>
+- Login Util % helps plan staffing<br>
+- Use CSV downloads for ops calls<br><br>
+
+<hr style='margin-top:1rem; margin-bottom:0.3rem;' />
+
+<p style='font-size: 13px; color: #555;'>
+Built by <b>Gijo Kochuparambil John</b> · Swiggy S&O<br>
+📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> |
+🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
+<i>#FleetFirst | Powered by Data</i>
+</p>
+</details>
+""", unsafe_allow_html=True)
+
+# ✅ Page placeholder
 st.write("Main Area")
+
 
 
 # Confidentiality Notice
