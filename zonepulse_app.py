@@ -270,3 +270,14 @@ if uploaded_file:
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
 
+# ---------------- Footer Branding ----------------
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; font-size: 14px; padding-top: 10px;'>
+Built with ❤️ by <b>Gijo Kochuparambil John</b> – Assistant Manager, Sourcing & Onboarding, Swiggy.<br>
+📬 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | 🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
+<sub>Empowering Swiggy with data-driven fleet optimization, one dashboard at a time.</sub>
+</div>
+""", unsafe_allow_html=True)
+
+
