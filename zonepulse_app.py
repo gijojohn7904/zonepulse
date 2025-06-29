@@ -122,7 +122,7 @@ if uploaded_file:
 
             zone_group["Hour"] = hr
             zone_group["Login_Utilization_%"] = zone_group.apply(
-                lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
+                lambda row: min(100, (row["Avg_Orders"] * 25 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
 
             if vertical == "Instamart":
@@ -178,7 +178,7 @@ if uploaded_file:
                 total_login = de_data["TOTAL LOGIN MINS"].sum()
                 total_orders = de_data["TOTAL ORDERS"].sum()
                 avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
-                idle_ratio = round(total_login / (total_orders * 20), 2) if total_orders > 0 else np.nan
+                idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
                 total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
                 total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
