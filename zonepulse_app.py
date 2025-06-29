@@ -274,7 +274,7 @@ else:
 # ---------------- Footer Branding ----------------
 components.html("""
 <div style='background-color:#f8f9fa;padding:15px;border-radius:10px;margin-top:50px;text-align: center; font-size: 14px; border:1px solid #ccc;'>
-    Built with ❤️ by <b>Gijo Kochuparambil John</b> – 🚀 Assistant Manager, Sourcing & Onboarding, Swiggy.<br>
+    Built by <b>Gijo Kochuparambil John</b> – 🚀 Assistant Manager, Sourcing & Onboarding, Swiggy.<br>
     📬 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | 🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
     <sub>#FleetFirst | Empowering Swiggy with data-driven fleet optimization.</sub>
 </div>
