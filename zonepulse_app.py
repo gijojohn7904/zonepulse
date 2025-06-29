@@ -3,6 +3,63 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+with st.sidebar.expander("ℹ️ Guide: Using ZonePulse", expanded=False):
+    st.markdown("""
+    <style>
+    .help-section {
+        font-size: 14px;
+        line-height: 1.6;
+        font-family: 'Segoe UI', sans-serif;
+    }
+    .help-section h4 {
+        margin-bottom: 0.3rem;
+        font-size: 15px;
+        color: #2c3e50;
+    }
+    .help-section ul {
+        padding-left: 1rem;
+    }
+    </style>
+    <div class='help-section'>
+        <h4>📥 Step 1: Upload Data File</h4>
+        <ul>
+            <li>Format: <code>.csv</code></li>
+            <li>Must include columns like: <code>LH_00–LH_23</code> and <code>FD_00–FD_23</code></li>
+            <li>Also required: <code>DE_ID</code>, <code>DE_NAME</code>, <code>ZONE</code>, <code>CITY</code>, <code>DT</code>, <code>WEEK</code></li>
+        </ul>
+
+        <h4>🎛️ Step 2: Apply Filters</h4>
+        <ul>
+            <li><b>Vertical</b>: SwiggyFood / Instamart</li>
+            <li><b>City</b> and <b>Zone</b></li>
+            <li><b>Date Range</b></li>
+        </ul>
+
+        <h4>📊 Dashboard Features</h4>
+        <ul>
+            <li><b>Zone-Level Hourly Report</b>: Staffing insight with Login Util % & recommendations</li>
+            <li><b>Churn Risk DEs</b>: High login, low orders</li>
+            <li><b>DE-Wise Performance</b>: Weekly charts & order patterns</li>
+            <li><b>No-Show Tracker</b>: Previously active DEs not logging in</li>
+        </ul>
+
+        <h4>🧠 Tips</h4>
+        <ul>
+            <li>Use Util % and Order/hour logic to rebalance shifts</li>
+            <li>Track idle DEs and follow-up before they churn</li>
+            <li>Download CSVs for team-level deep dive</li>
+        </ul>
+
+        <hr style='margin-top:1rem; margin-bottom:0.3rem;' />
+
+        <p style='font-size: 13px; color: #555;'>
+        Built by <b>Gijo Kochuparambil John</b>  
+        <br>Assistant Manager – Sourcing & Onboarding, Swiggy  
+        <br>📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | 🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a>
+        <br><i>#FleetFirst | Data-backed staffing decisions</i>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 def check_password():
     def password_entered():
