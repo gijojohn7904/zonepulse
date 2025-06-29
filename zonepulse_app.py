@@ -73,46 +73,46 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     hourly_data = []
-    for hr in range(24):
-        fd_col = f"FD_{str(hr).zfill(2)}"
-        lh_col = f"LH_{str(hr).zfill(2)}"
+for hr in range(24):
+    fd_col = f"FD_{str(hr).zfill(2)}"
+    lh_col = f"LH_{str(hr).zfill(2)}"
 
-        if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 10]
-            if hour_df.empty:
-                continue
+    if fd_col in df.columns and lh_col in df.columns:
+        hour_df = df[df[lh_col] > 10]
+        if hour_df.empty:
+            continue
 
-            zone_group = hour_df.groupby("ZONE").agg(
-                Avg_Orders=(fd_col, 'mean'),
-                Avg_Login_Mins=(lh_col, 'mean'),
-                Active_DEs=(lh_col, lambda x: (x > 10).sum())
-            ).reset_index()
+        zone_group = hour_df.groupby("ZONE").agg(
+            Total_Orders=(fd_col, 'sum'),
+            Avg_Login_Mins=(lh_col, 'mean'),
+            Active_DEs=(lh_col, lambda x: (x > 10).sum())
+        ).reset_index()
 
-            zone_group["Hour"] = hr
-            zone_group["Orders_per_Hour"] = zone_group.apply(
-                lambda row: row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) if row["Avg_Login_Mins"] > 0 else np.nan,
-                axis=1)
-            zone_group["Login_Utilization_%"] = zone_group.apply(
-                lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
-                axis=1)
+        zone_group["Hour"] = hr
+        zone_group["Orders_per_Hour"] = zone_group["Total_Orders"]  # 💥 Actual orders, not avg
+        zone_group["Login_Utilization_%"] = zone_group.apply(
+            lambda row: min(100, (row["Total_Orders"] * 20 / (row["Avg_Login_Mins"] * row["Active_DEs"])) * 100)
+            if row["Avg_Login_Mins"] > 0 and row["Active_DEs"] > 0 else 0,
+            axis=1
+        )
 
-            # ✅ FIXED vertical-specific recommendation logic
-            if vertical == "Instamart":
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1.2 and row["Login_Utilization_%"] < 30)
-                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 2.2 and row["Login_Utilization_%"] > 70)
-                    else "✅ Balanced",
-                    axis=1
-                )
-            else:  # SwiggyFood
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
-                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
-                    else "✅ Balanced",
-                    axis=1
-                )
+        # 🧠 Vertical-specific recommendations
+        if vertical == "Instamart":
+            zone_group["Recommendation"] = zone_group.apply(
+                lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1.2 * row["Active_DEs"] and row["Login_Utilization_%"] < 30)
+                else "🔴 Understaffed" if (row["Orders_per_Hour"] > 2.2 * row["Active_DEs"] and row["Login_Utilization_%"] > 70)
+                else "✅ Balanced",
+                axis=1
+            )
+        else:
+            zone_group["Recommendation"] = zone_group.apply(
+                lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 * row["Active_DEs"] and row["Login_Utilization_%"] < 25)
+                else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 * row["Active_DEs"] and row["Login_Utilization_%"] > 57)
+                else "✅ Balanced",
+                axis=1
+            )
 
-            hourly_data.append(zone_group)
+        hourly_data.append(zone_group)
 
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
