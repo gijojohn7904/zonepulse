@@ -8,7 +8,7 @@ def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]
+            del st.session_state["password"]  # Wipe it out after use
         else:
             st.session_state["password_correct"] = False
 
@@ -18,16 +18,7 @@ def check_password():
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the Sourcing & Onboarding team.
         """, unsafe_allow_html=True)
-
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
-
-        # ✅ Render image through HTML to avoid SVG loading issues
-        components.html("""
-            <div style='text-align: center; margin-top: 20px;'>
-                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'>
-            </div>
-        """, height=120)
-
         st.stop()
 
     elif not st.session_state["password_correct"]:
@@ -36,20 +27,12 @@ def check_password():
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the S&O team.
         """, unsafe_allow_html=True)
-
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password. Please try again.")
-
-        components.html("""
-            <div style='text-align: center; margin-top: 20px;'>
-                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'>
-            </div>
-        """, height=120)
-
         st.stop()
 
 
-
+check_password()  # 🔒 Call this function to enforce password
 
 # Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
@@ -339,4 +322,6 @@ components.html("""
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
 </div>
 """, height=170)
+
+
 
