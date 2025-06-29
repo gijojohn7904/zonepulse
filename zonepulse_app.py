@@ -37,32 +37,27 @@ def check_password():
 check_password()
 
 # 📌 Sidebar Header & Guide
-st.sidebar.markdown("### 👋 Hello Gijo")
+with st.sidebar:
+    st.markdown("### 👋 Hello Gijo")
 
-st.sidebar.markdown("""
-<details open>
-<summary style='font-size:16px;'>ℹ️ <b>Guide</b></summary>
-<div style='padding-top:10px; font-size:14px; line-height:1.6'>
+    if st.checkbox("ℹ️ Show Guide"):
+        st.markdown("""
+        #### 📌 ZonePulse Usage Guide
+        **Step 1:** Upload your `Order vs Login` CSV  
+        **Step 2:** Filter by Vertical, City, Zone, Date  
+        **Step 3:** Explore tabs:
+        - 📊 Zone-Level Report
+        - ⚠️ Churn Risk DEs
+        - 👤 DE-wise Drill-down
+        - 🤔 No-Show Detection
 
-📥 <b>Step 1:</b> Upload DE Order vs Login File (CSV)<br>
-🎛️ <b>Step 2:</b> Filter by Vertical, City, Zone, Date<br>
-📊 <b>Step 3:</b> Analyze:
-<ul>
-<li>Zone-Level Utilization</li>
-<li>Churn Risk DEs</li>
-<li>Individual DE View</li>
-<li>No-Show Tracking</li>
-</ul>
+        **Tips:**
+        - High Login, Low Orders → Attrition risk  
+        - Login Util% = Health of supply-demand match  
 
-💡 <b>Tip:</b> High login & low orders = churn risk.<br>
-📈 <b>Login Util %</b> helps identify over/under staffing.<br>
+        _Built for S&O Ops with ❤️_
+        """)
 
-<hr style='margin:10px 0;' />
-<sub style='color:gray;'>Made for internal Swiggy S&O usage only.</sub>
-
-</div>
-</details>
-""", unsafe_allow_html=True)
 
 
 # ✅ Page placeholder
