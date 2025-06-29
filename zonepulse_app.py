@@ -35,45 +35,18 @@ def check_password():
 
 check_password()  # 🔒 Call this function to enforce password
 
-st.sidebar.markdown("""
-<details style='font-family: "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6;'>
-<summary style='font-weight: bold; font-size: 15px;'>ℹ️ <b>Guide: Using ZonePulse</b></summary>
-
-<br>
-<b>📥 Step 1: Upload Data File</b><br>
-- Format: <code>.csv</code><br>
-- Must include columns like: <code>LH_00–LH_23</code> and <code>FD_00–FD_23</code><br>
-- Required: <code>DE_ID</code>, <code>DE_NAME</code>, <code>ZONE</code>, <code>CITY</code>, <code>DT</code>, <code>WEEK</code><br><br>
-
-<b>🎛️ Step 2: Apply Filters</b><br>
-- Vertical: SwiggyFood / Instamart<br>
-- City & Zone<br>
-- Date Range<br><br>
-
-<b>📊 Dashboard Features</b><br>
-- Zone-Level Hourly Report: Staffing insight with Login Util % & recommendations<br>
-- Churn Risk DEs: High login, low orders<br>
-- DE-Wise Performance: Weekly charts & patterns<br>
-- No-Show Tracker: Previously active DEs not logging in<br><br>
-
-<b>🧠 Tips</b><br>
-- Use Util % and Order/hour to rebalance shifts<br>
-- Track idle DEs before they churn<br>
-- Download CSVs for deep dives<br><br>
-
-<hr style='margin-top:1rem; margin-bottom:0.3rem;' />
-
-<p style='font-size: 13px; color: #555;'>
-Built by <b>Gijo Kochuparambil John</b><br>
-Assistant Manager – Sourcing & Onboarding, Swiggy<br>
-📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
-<i>#FleetFirst | Data-backed staffing decisions</i>
-</p>
-</details>
-""", unsafe_allow_html=True)
-
 # Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
+
+import streamlit as st
+
+st.set_page_config(page_title="ZonePulse", layout="wide")
+
+st.sidebar.markdown("### 👋 Hello Gijo")
+st.sidebar.markdown("""<details><summary>ℹ️ Guide</summary>This is a test guide</details>""", unsafe_allow_html=True)
+
+st.write("Main Area")
+
 
 # Confidentiality Notice
 st.markdown("""
