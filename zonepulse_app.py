@@ -8,7 +8,7 @@ def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Wipe it out after use
+            del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
@@ -21,8 +21,12 @@ def check_password():
 
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
 
-        # ✅ Working PNG version of Swiggy Logo
-        st.image("https://i.imgur.com/IqXAM8a.png", width=100)
+        # ✅ Render image through HTML to avoid SVG loading issues
+        components.html("""
+            <div style='text-align: center; margin-top: 20px;'>
+                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'>
+            </div>
+        """, height=120)
 
         st.stop()
 
@@ -36,8 +40,11 @@ def check_password():
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password. Please try again.")
 
-        # ✅ Working PNG version of Swiggy Logo
-        st.image("https://i.imgur.com/IqXAM8a.png", width=100)
+        components.html("""
+            <div style='text-align: center; margin-top: 20px;'>
+                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'>
+            </div>
+        """, height=120)
 
         st.stop()
 
