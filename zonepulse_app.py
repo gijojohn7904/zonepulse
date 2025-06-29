@@ -36,33 +36,6 @@ check_password()
 # ✅ Page settings
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 
-# ✅ Sidebar
-st.sidebar.markdown("### 👋 Hello Gijo")
-
-with st.sidebar.expander("ℹ️ Guide – Click to Expand"):
-    st.markdown("""
-    ### 🛠️ How to Use ZonePulse
-
-    **1. Upload CSV File**
-    - Must include columns like `LH_00`, `FD_01`, `CITY`, `ZONE`, etc.
-
-    **2. Apply Filters**
-    - 🔃 Select Vertical (SwiggyFood / Instamart)  
-    - 🏩 Filter by City, 📍 Zone, and 🗓️ Date Range
-
-    **3. Explore Sections**
-    - 📊 Zone-Level Report  
-    - ⚠️ Churn Risk DEs  
-    - 👤 DE-wise View  
-    - 🤔 No-Show DEs
-
-    **🧠 Key Metrics**
-    - Login Util % = (Orders × 25 / Login mins) × 100  
-    - ⚠️ Overstaffed: Low orders & low utilization  
-    - 🔴 Understaffed: High orders per DE  
-    - ✅ Balanced: Optimal performance
-    """, unsafe_allow_html=True)
-
 # Main body
 st.write("Main Area")
 
