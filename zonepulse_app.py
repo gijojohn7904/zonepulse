@@ -83,31 +83,28 @@ if uploaded_file:
                 continue
 
             zone_group = hour_df.groupby("ZONE").agg(
-                Avg_Orders=(fd_col, 'mean'),
-                Avg_Login_Mins=(lh_col, 'mean'),
-                Active_DEs=(lh_col, lambda x: (x > 10).sum())
-            ).reset_index()
+    Total_Orders=(fd_col, 'sum'),
+    Avg_Orders=(fd_col, 'mean'),
+    Avg_Login_Mins=(lh_col, 'mean'),
+    Active_DEs=(lh_col, lambda x: (x > 10).sum())
+).reset_index()
 
             zone_group["Hour"] = hr
-            zone_group["Orders_per_Hour"] = zone_group.apply(
-                lambda row: row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) if row["Avg_Login_Mins"] > 0 else np.nan,
-                axis=1)
             zone_group["Login_Utilization_%"] = zone_group.apply(
                 lambda row: min(100, (row["Avg_Orders"] * 20 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
                 axis=1)
 
-            # ✅ FIXED vertical-specific recommendation logic
             if vertical == "Instamart":
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1.2 and row["Login_Utilization_%"] < 30)
-                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 2.2 and row["Login_Utilization_%"] > 70)
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
                     else "✅ Balanced",
                     axis=1
                 )
-            else:  # SwiggyFood
+            else:
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1 and row["Login_Utilization_%"] < 50)
-                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.2 and row["Login_Utilization_%"] > 57)
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
                     else "✅ Balanced",
                     axis=1
                 )
