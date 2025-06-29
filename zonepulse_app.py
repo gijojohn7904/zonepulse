@@ -38,38 +38,32 @@ check_password()
 
 # 📌 Sidebar Header & Guide
 st.sidebar.markdown("### 👋 Hello Gijo")
+
 st.sidebar.markdown("""
-<details style='font-family: "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6;'>
-<summary style='font-weight: bold; font-size: 15px;'>ℹ️ <b>Guide: Using ZonePulse</b></summary>
+<details open>
+<summary style='font-size:16px;'>ℹ️ <b>Guide</b></summary>
+<div style='padding-top:10px; font-size:14px; line-height:1.6'>
 
-<br>
-<b>📥 Step 1: Upload DE CSV</b><br>
-Include LH_00–LH_23, FD_00–FD_23, DE_ID, DE_NAME, ZONE, CITY, DT, WEEK<br><br>
+📥 <b>Step 1:</b> Upload DE Order vs Login File (CSV)<br>
+🎛️ <b>Step 2:</b> Filter by Vertical, City, Zone, Date<br>
+📊 <b>Step 3:</b> Analyze:
+<ul>
+<li>Zone-Level Utilization</li>
+<li>Churn Risk DEs</li>
+<li>Individual DE View</li>
+<li>No-Show Tracking</li>
+</ul>
 
-<b>🎛️ Step 2: Apply Filters</b><br>
-Vertical → City → Zone → Date Range<br><br>
+💡 <b>Tip:</b> High login & low orders = churn risk.<br>
+📈 <b>Login Util %</b> helps identify over/under staffing.<br>
 
-<b>📊 Dashboard Sections</b><br>
-- Zone-Level Hourly Report<br>
-- Potential Churn DEs<br>
-- DE Drilldown View<br>
-- No-Show Tracker<br><br>
+<hr style='margin:10px 0;' />
+<sub style='color:gray;'>Made for internal Swiggy S&O usage only.</sub>
 
-<b>💡 Tips</b><br>
-- High login, low order = churn risk<br>
-- Login Util % helps plan staffing<br>
-- Use CSV downloads for ops calls<br><br>
-
-<hr style='margin-top:1rem; margin-bottom:0.3rem;' />
-
-<p style='font-size: 13px; color: #555;'>
-Built by <b>Gijo Kochuparambil John</b> · Swiggy S&O<br>
-📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> |
-🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
-<i>#FleetFirst | Powered by Data</i>
-</p>
+</div>
 </details>
 """, unsafe_allow_html=True)
+
 
 # ✅ Page placeholder
 st.write("Main Area")
