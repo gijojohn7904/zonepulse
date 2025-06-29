@@ -21,8 +21,12 @@ def check_password():
 
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
 
-        # 🖼️ Swiggy Logo SVG
-        st.image("https://www.svgrepo.com/show/504928/swiggy.svg", width=100)
+        # Embed SVG via HTML
+        st.markdown("""
+            <div style='text-align:center; margin-top:20px;'>
+                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'/>
+            </div>
+        """, unsafe_allow_html=True)
 
         st.stop()
 
@@ -36,10 +40,15 @@ def check_password():
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password. Please try again.")
 
-        # 🖼️ Swiggy Logo SVG
-        st.image("https://www.svgrepo.com/show/504928/swiggy.svg", width=100)
+        # Embed SVG via HTML
+        st.markdown("""
+            <div style='text-align:center; margin-top:20px;'>
+                <img src='https://www.svgrepo.com/show/504928/swiggy.svg' width='100'/>
+            </div>
+        """, unsafe_allow_html=True)
 
         st.stop()
+
 
 
 # Page config
