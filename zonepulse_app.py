@@ -106,8 +106,8 @@ if uploaded_file:
                 )
             else:  # SwiggyFood
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 0.6 and row["Login_Utilization_%"] < 25)
-                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.5 and row["Login_Utilization_%"] > 57)
+                    lambda row: "⚠️ Overstaffed" if (row["Orders_per_Hour"] < 1 and row["Login_Utilization_%"] < 50)
+                    else "🔴 Understaffed" if (row["Orders_per_Hour"] > 1.2 and row["Login_Utilization_%"] > 57)
                     else "✅ Balanced",
                     axis=1
                 )
