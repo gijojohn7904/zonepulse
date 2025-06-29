@@ -35,63 +35,42 @@ def check_password():
 
 check_password()  # 🔒 Call this function to enforce password
 
-with st.sidebar.expander("ℹ️ Guide: Using ZonePulse", expanded=False):
-    st.markdown("""
-    <style>
-    .help-section {
-        font-size: 14px;
-        line-height: 1.6;
-        font-family: 'Segoe UI', sans-serif;
-    }
-    .help-section h4 {
-        margin-bottom: 0.3rem;
-        font-size: 15px;
-        color: #2c3e50;
-    }
-    .help-section ul {
-        padding-left: 1rem;
-    }
-    </style>
-    <div class='help-section'>
-        <h4>📥 Step 1: Upload Data File</h4>
-        <ul>
-            <li>Format: <code>.csv</code></li>
-            <li>Must include columns like: <code>LH_00–LH_23</code> and <code>FD_00–FD_23</code></li>
-            <li>Also required: <code>DE_ID</code>, <code>DE_NAME</code>, <code>ZONE</code>, <code>CITY</code>, <code>DT</code>, <code>WEEK</code></li>
-        </ul>
+st.sidebar.markdown("""
+<details style='font-family: "Segoe UI", sans-serif; font-size: 14px; line-height: 1.6;'>
+<summary style='font-weight: bold; font-size: 15px;'>ℹ️ <b>Guide: Using ZonePulse</b></summary>
 
-        <h4>🎛️ Step 2: Apply Filters</h4>
-        <ul>
-            <li><b>Vertical</b>: SwiggyFood / Instamart</li>
-            <li><b>City</b> and <b>Zone</b></li>
-            <li><b>Date Range</b></li>
-        </ul>
+<br>
+<b>📥 Step 1: Upload Data File</b><br>
+- Format: <code>.csv</code><br>
+- Must include columns like: <code>LH_00–LH_23</code> and <code>FD_00–FD_23</code><br>
+- Required: <code>DE_ID</code>, <code>DE_NAME</code>, <code>ZONE</code>, <code>CITY</code>, <code>DT</code>, <code>WEEK</code><br><br>
 
-        <h4>📊 Dashboard Features</h4>
-        <ul>
-            <li><b>Zone-Level Hourly Report</b>: Staffing insight with Login Util % & recommendations</li>
-            <li><b>Churn Risk DEs</b>: High login, low orders</li>
-            <li><b>DE-Wise Performance</b>: Weekly charts & order patterns</li>
-            <li><b>No-Show Tracker</b>: Previously active DEs not logging in</li>
-        </ul>
+<b>🎛️ Step 2: Apply Filters</b><br>
+- Vertical: SwiggyFood / Instamart<br>
+- City & Zone<br>
+- Date Range<br><br>
 
-        <h4>🧠 Tips</h4>
-        <ul>
-            <li>Use Util % and Order/hour logic to rebalance shifts</li>
-            <li>Track idle DEs and follow-up before they churn</li>
-            <li>Download CSVs for team-level deep dive</li>
-        </ul>
+<b>📊 Dashboard Features</b><br>
+- Zone-Level Hourly Report: Staffing insight with Login Util % & recommendations<br>
+- Churn Risk DEs: High login, low orders<br>
+- DE-Wise Performance: Weekly charts & patterns<br>
+- No-Show Tracker: Previously active DEs not logging in<br><br>
 
-        <hr style='margin-top:1rem; margin-bottom:0.3rem;' />
+<b>🧠 Tips</b><br>
+- Use Util % and Order/hour to rebalance shifts<br>
+- Track idle DEs before they churn<br>
+- Download CSVs for deep dives<br><br>
 
-        <p style='font-size: 13px; color: #555;'>
-        Built by <b>Gijo Kochuparambil John</b>  
-        <br>Assistant Manager – Sourcing & Onboarding, Swiggy  
-        <br>📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | 🔗 <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a>
-        <br><i>#FleetFirst | Data-backed staffing decisions</i>
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+<hr style='margin-top:1rem; margin-bottom:0.3rem;' />
+
+<p style='font-size: 13px; color: #555;'>
+Built by <b>Gijo Kochuparambil John</b><br>
+Assistant Manager – Sourcing & Onboarding, Swiggy<br>
+📧 <a href='mailto:gijo.j@swiggy.in'>gijo.j@swiggy.in</a> | <a href='https://www.linkedin.com/in/gijojohn/' target='_blank'>LinkedIn</a><br>
+<i>#FleetFirst | Data-backed staffing decisions</i>
+</p>
+</details>
+""", unsafe_allow_html=True)
 
 # Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
