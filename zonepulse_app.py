@@ -266,34 +266,19 @@ if "DE_ID" in df.columns:
             ).properties(title=f"📊 {metric} by Week")
             col.altair_chart(chart, use_container_width=True)
 
-# --- LOGIN MINUTES VS TOTAL ORDERS CHART (Centered) ---
-st.markdown(
-    """
-    <div style='display: flex; justify-content: center;'>
-        <div style='width: 90%; max-width: 700px;'>
-    """,
-    unsafe_allow_html=True
-)
+  # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
+        st.markdown(
+            """
+            <div style='display: flex; justify-content: center;'>
+                <div style='width: 90%; max-width: 700px;'>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown("### 📈 Login Minutes vs Total Orders Over Time", unsafe_allow_html=True)
+        # ... chart code ...
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
-st.markdown("### 📈 Login Minutes vs Total Orders Over Time", unsafe_allow_html=True)
-
-chart_df = de_data.sort_values("DT")
-base = alt.Chart(chart_df).encode(x="DT:T")
-login_line = base.mark_line(color="#1f77b4").encode(
-    y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
-    tooltip=["DT", "TOTAL LOGIN MINS"]
-)
-order_line = base.mark_line(color="#ff7f0e").encode(
-    y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
-    tooltip=["DT", "TOTAL ORDERS"]
-)
-st.altair_chart(
-    alt.layer(login_line, order_line).resolve_scale(y="independent"),
-    use_container_width=True
-)
-
-st.markdown("</div></div>", unsafe_allow_html=True)
-         # --- HOURLY LOGIN VS ORDERS ---
+        # --- HOURLY LOGIN VS ORDERS ---
         st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
         hourly_records = []
         for _, row in de_data.iterrows():
