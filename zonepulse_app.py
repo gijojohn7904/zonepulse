@@ -314,7 +314,7 @@ components.html("""
     border:1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 '>
-    Built by <b>Gijo Kochuparambil John</b> – Assistant Manager, Sourcing & Onboarding, Swiggy<br>
+    Built by <b>Gijo Kochuparambil John</b> – Assistant Manager, Sourcing & Onboarding, Swiggy.ltd<br>
     <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>Contact: gijo.j@swiggy.in</a> |
     <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn Profile</a><br>
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
