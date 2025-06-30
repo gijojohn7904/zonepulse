@@ -1,4 +1,4 @@
-st.write("Gijo was here!")
+st.write("Gijo was here !")
 
 import streamlit.components.v1 as components
 import streamlit as st
