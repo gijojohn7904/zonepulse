@@ -163,30 +163,6 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-
-# 🔍 Knowledge Risk Detection – Flag Untrained DEs
-st.markdown("## 📘 Untrained / App-Confused DEs (Knowledge Risk)")
-
-if "REJECTED_ORDERS" in df.columns and "DAILY_EARNINGS" in df.columns:
-    df["KNOWLEDGE_RISK_FLAG"] = df.apply(
-        lambda row: "⚠️ Untrained" if (
-            (row["REJECTED_ORDERS"] >= 2) +
-            (row["TOTAL ORDERS"] < 5) +
-            (row["DAILY_EARNINGS"] < 100) +
-            (row["TOTAL LOGIN MINS"] > 120)
-        ) >= 2 else "✅ OK",
-        axis=1
-    )
-
-    risk_df = df[df["KNOWLEDGE_RISK_FLAG"] == "⚠️ Untrained"]
-    if not risk_df.empty:
-        st.dataframe(risk_df[["DE_ID", "DE_NAME", "ZONE", "DT", "TOTAL ORDERS", "REJECTED_ORDERS", "DAILY_EARNINGS", "TOTAL LOGIN MINS", "KNOWLEDGE_RISK_FLAG"]])
-        st.download_button("📥 Download Untrained DEs List", data=risk_df.to_csv(index=False), file_name="untrained_des.csv", mime="text/csv")
-    else:
-        st.success("🎓 All DEs seem trained for the selected period.")
-else:
-    st.warning("⚠️ Rejected Orders or Daily Earnings column missing to assess knowledge risk.")
-
 # 👤 Individual DE-wise View
 st.markdown("## 👤 Individual DE-wise View")
 
