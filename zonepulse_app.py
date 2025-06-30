@@ -1,4 +1,5 @@
-st.write("Gijo was here !")
+raise Exception("If you see this error on Streamlit, new code IS deploying!")
+
 
 import streamlit.components.v1 as components
 import streamlit as st
