@@ -205,10 +205,15 @@ if "DE_ID" in df.columns:
         zone = de_data['ZONE'].iloc[0]
         city = de_data['CITY'].iloc[0]
         extra = []
-        if "TENURE_BUCKET" in de_data.columns:
-            extra.append(f"🗓️ <b>Tenure:</b> {de_data['TENURE_BUCKET'].iloc[0]}")
-        if "AGE_BUCKET" in de_data.columns:
-            extra.append(f"🎂 <b>Age:</b> {de_data['AGE_BUCKET'].iloc[0]}")
+if "TENURE_BUCKET" in de_data.columns:
+    raw_tenure = str(de_data['TENURE_BUCKET'].iloc[0])
+    trimmed_tenure = raw_tenure[2:] if len(raw_tenure) > 2 else raw_tenure
+    extra.append(f"🗓️ <b>Tenure:</b> {trimmed_tenure}")
+if "AGE_BUCKET" in de_data.columns:
+    raw_age = str(de_data['AGE_BUCKET'].iloc[0])
+    trimmed_age = raw_age[2:] if len(raw_age) > 2 else raw_age
+    extra.append(f"🎂 <b>Age:</b> {trimmed_age}")
+
         st.markdown(
             f"**📍 Zone:** {zone}  |  🏣️ **City:** {city}" + (" | " + " | ".join(extra) if extra else ""),
             unsafe_allow_html=True
