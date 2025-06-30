@@ -301,22 +301,31 @@ else:
 
 # ---------------- Footer Branding ----------------
 components.html("""
+<style>
+/* Kill emoji substitution */
+.no-emoji {
+    font-family: 'Inter', sans-serif !important;
+    font-feature-settings: "liga" 0;
+    unicode-range: U+0000-FFFF;
+}
+</style>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
-<div style='
+<div class="no-emoji" style='
     background-color:#f8f9fa;
     padding:15px;
     border-radius:12px;
     margin-top:50px;
     text-align:center;
-    font-family:"Inter", sans-serif;
     font-size:14px;
     color:#333;
     border:1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 '>
-    Built by <b>Gijo Kochuparambil John</b> – Assistant Manager, Sourcing & Onboarding, Swiggy.ltd<br>
-    <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>Contact: gijo.j@swiggy.in</a> |
-    <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn Profile</a><br>
+    Built by <b>Gijo Kochuparambil John</b> – Assistant Manager, Sourcing & Onboarding, Swiggy<br>
+    <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>Mail: gijo.j@swiggy.in</a> |
+    <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn</a><br>
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
 </div>
 """, height=170)
+
