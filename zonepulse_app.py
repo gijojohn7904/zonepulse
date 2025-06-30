@@ -213,6 +213,12 @@ if "DE_ID" in df.columns:
         idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
         total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
         total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+        # DEDUCTIONS
+        total_weekly_deduction = de_data["WEEKLY_DEDUCTIONS"].sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
+        total_other_daily_deduction = de_data["OTHER_DAILY_DEDUCTIONS"].sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
+        total_deductions = total_weekly_deduction + total_other_daily_deduction
+        # NET EARNINGS
+        net_earnings = total_earnings - total_deductions
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("🔕️ Active Days", total_days)
@@ -220,9 +226,11 @@ if "DE_ID" in df.columns:
         col3.metric("🔵️ Total Orders", int(total_orders))
         col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
 
-        col5, col6 = st.columns(2)
+        col5, col6, col7, col8 = st.columns(4)
         col5.metric("⛔ Rejected Orders", int(total_rejected))
         col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
+        col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
+        col8.metric("🟢 Net Earnings", f"₹{round(net_earnings, 2)}")
 
         # --- WEEKLY PERFORMANCE CHARTS ---
         st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
@@ -287,6 +295,7 @@ if "DE_ID" in df.columns:
             st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False), file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
         else:
             st.info("ℹ️ No hourly data found for this DE.")
+
 
     # ---------------- No Show Section ----------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
