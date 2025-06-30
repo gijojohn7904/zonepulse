@@ -173,7 +173,7 @@ def render_stars(rating, max_stars=5):
 
 # 👤 Individual DE-wise View
 st.markdown("## 👤 Individual DE-wise View")
-if uploaded_file and "DE_ID" in df.columns:
+if "DE_ID" in df.columns:
     de_ids = df["DE_ID"].dropna().astype(str).unique()
     selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
     if selected_de != "None":
@@ -195,11 +195,13 @@ if uploaded_file and "DE_ID" in df.columns:
         else:
             rating_text = "<span style='color:#888'>No Ratings</span>"
 
+        # --- SINGLE HEADER WITH NAME + RATING
         st.markdown(
             f"### {de_name} &nbsp; {rating_text}",
             unsafe_allow_html=True
         )
 
+        # --- PROFILE INFO (zone, city, tenure, age)
         zone = de_data['ZONE'].iloc[0]
         city = de_data['CITY'].iloc[0]
         extra = []
@@ -217,6 +219,7 @@ if uploaded_file and "DE_ID" in df.columns:
             unsafe_allow_html=True
         )
 
+        # --- METRICS BLOCK ---
         total_days = de_data.shape[0]
         total_login = de_data["TOTAL LOGIN MINS"].sum()
         total_orders = de_data["TOTAL ORDERS"].sum()
@@ -263,15 +266,8 @@ if uploaded_file and "DE_ID" in df.columns:
             ).properties(title=f"📊 {metric} by Week")
             col.altair_chart(chart, use_container_width=True)
 
-        # --- LOGIN MINUTES VS TOTAL ORDERS CHART (Centered) ---
-        st.markdown(
-            """
-            <div style='display: flex; justify-content: center;'>
-                <div style='width: 90%; max-width: 700px;'>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown("### 📈 Login Minutes vs Total Orders Over Time", unsafe_allow_html=True)
+        # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
+        st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
         chart_df = de_data.sort_values("DT")
         base = alt.Chart(chart_df).encode(x="DT:T")
         login_line = base.mark_line(color="#1f77b4").encode(
@@ -286,9 +282,9 @@ if uploaded_file and "DE_ID" in df.columns:
             alt.layer(login_line, order_line).resolve_scale(y="independent"),
             use_container_width=True
         )
-        st.markdown("</div></div>", unsafe_allow_html=True)
 
-        # --- HOURLY LOGIN VS ORDERS ---
+
+         # --- HOURLY LOGIN VS ORDERS ---
         st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
         hourly_records = []
         for _, row in de_data.iterrows():
@@ -318,14 +314,15 @@ if uploaded_file and "DE_ID" in df.columns:
         else:
             st.info("ℹ️ No hourly data found for this DE.")
 
-# ---------------- No Show Section ----------------
-st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
-col_prev, col_curr = st.columns(2)
-with col_prev:
-    prev_dates = st.date_input("🗕️ Select Previous Period", [])
-with col_curr:
-    curr_dates = st.date_input("🗕️ Select Current Period", [])
 
+
+    # ---------------- No Show Section ----------------
+    st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
+    col_prev, col_curr = st.columns(2)
+    with col_prev:
+        prev_dates = st.date_input("🗕️ Select Previous Period", [])
+    with col_curr:
+        curr_dates = st.date_input("🗕️ Select Current Period", [])
 
     if len(prev_dates) == 2 and len(curr_dates) == 2:
         prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
@@ -382,6 +379,5 @@ components.html("""
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
 </div>
 """, height=170)
-
 
 
