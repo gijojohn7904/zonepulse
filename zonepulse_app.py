@@ -321,8 +321,9 @@ components.html("""
 </div>
 """, height=170)
 
-     <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>gijo.j@swiggy.in</a> |
-     <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn</a><br>
+     <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>Email: gijo.j@swiggy.in</a> |
+     <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn Profile</a>
+
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
 </div>
 """, height=170)
