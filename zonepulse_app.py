@@ -103,6 +103,30 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
+ # 🧐 Suggested Actions Engine
+    df["CHURN_RISK"] = (
+        ((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) |
+        (df.get("REJECTED_ORDERS", 0) >= 3)
+    )
+    df["SUGGESTED_ACTION"] = df["CHURN_RISK"].apply(
+        lambda x: "📞 Call this DE – likely to churn in 2 days." if x else None
+    )
+    churn_suggestions = df[df["SUGGESTED_ACTION"].notna()][
+        ["DE_ID", "DE_NAME", "ZONE", "DT", "SUGGESTED_ACTION"]
+    ].drop_duplicates()
+
+    st.markdown("## 🧠 Suggested Actions Engine")
+
+    if not churn_suggestions.empty:
+        st.markdown("### 🔔 DE-Level Suggestions")
+        st.dataframe(churn_suggestions.sort_values(by="DT", ascending=False))
+        st.download_button("📅 Download DE Suggestions", data=churn_suggestions.to_csv(index=False), file_name="de_suggestions.csv", mime="text/csv")
+    else:
+        st.info("✅ No DE-level actions required.")
+
+    # -- End of Action Engine --
+
+
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
