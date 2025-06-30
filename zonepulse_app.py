@@ -178,25 +178,25 @@ if "REJECTED_ORDERS" in df.columns and "DAILY_EARNINGS" in df.columns:
         axis=1
     )
 
-risk_df = df[df["KNOWLEDGE_RISK_FLAG"] == "⚠️ Untrained"]
+    risk_df = df[df["KNOWLEDGE_RISK_FLAG"] == "⚠️ Untrained"]
     if not risk_df.empty:
         st.dataframe(risk_df[["DE_ID", "DE_NAME", "ZONE", "DT", "TOTAL ORDERS", "REJECTED_ORDERS", "DAILY_EARNINGS", "TOTAL LOGIN MINS", "KNOWLEDGE_RISK_FLAG"]])
         st.download_button("📥 Download Untrained DEs List", data=risk_df.to_csv(index=False), file_name="untrained_des.csv", mime="text/csv")
     else:
         st.success("🎓 All DEs seem trained for the selected period.")
-
 else:
     st.warning("⚠️ Rejected Orders or Daily Earnings column missing to assess knowledge risk.")
 
 # 👤 Individual DE-wise View
 st.markdown("## 👤 Individual DE-wise View")
-        if "DE_ID" in df.columns:
-            de_ids = df["DE_ID"].dropna().astype(str).unique()
-            selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
-            if selected_de != "None":
-                de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-                st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
-                st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
+
+if "DE_ID" in df.columns:
+    de_ids = df["DE_ID"].dropna().astype(str).unique()
+    selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
+    if selected_de != "None":
+        de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
+        st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
+        st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
 
                 total_days = de_data.shape[0]
                 total_login = de_data["TOTAL LOGIN MINS"].sum()
