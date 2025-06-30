@@ -178,7 +178,7 @@ if "DE_ID" in df.columns:
     if selected_de != "None":
         de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
         st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
-        
+
         # Profile header with tenure/age bucket if available
         zone = de_data['ZONE'].iloc[0]
         city = de_data['CITY'].iloc[0]
@@ -190,12 +190,18 @@ if "DE_ID" in df.columns:
         st.markdown(f"**📍 Zone:** {zone}  |  🏣️ **City:** {city}" + (" | " + " | ".join(extra) if extra else ""), unsafe_allow_html=True)
 
         # --- STAR RATING BLOCK ---
+        avg_rating = None
+        stars = "No Ratings"
         if "TOTAL_RATING" in de_data.columns and "TOTAL_ORDERS_RATED" in de_data.columns:
             total_rating = de_data["TOTAL_RATING"].sum()
             total_rated = de_data["TOTAL_ORDERS_RATED"].sum()
             avg_rating = round(total_rating / total_rated, 2) if total_rated > 0 else None
-            stars = render_stars(avg_rating)
-            st.markdown(f"<span style='font-size:1.4em;'>⭐ <b>Customer Rating:</b> {stars} ({avg_rating if avg_rating else 'No Ratings'})</span>", unsafe_allow_html=True)
+            if avg_rating is not None:
+                stars = render_stars(avg_rating)
+            st.markdown(
+                f"<span style='font-size:1.4em;'>⭐ <b>Customer Rating:</b> {stars} ({avg_rating if avg_rating is not None else 'No Ratings'})</span>",
+                unsafe_allow_html=True
+            )
         else:
             st.info("No rating data available for this DE.")
 
