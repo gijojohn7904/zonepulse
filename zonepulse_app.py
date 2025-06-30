@@ -266,22 +266,25 @@ if "DE_ID" in df.columns:
             ).properties(title=f"📊 {metric} by Week")
             col.altair_chart(chart, use_container_width=True)
 
-        # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
-        st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
-        chart_df = de_data.sort_values("DT")
-        base = alt.Chart(chart_df).encode(x="DT:T")
-        login_line = base.mark_line(color="#1f77b4").encode(
-            y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
-            tooltip=["DT", "TOTAL LOGIN MINS"]
-        )
-        order_line = base.mark_line(color="#ff7f0e").encode(
-            y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
-            tooltip=["DT", "TOTAL ORDERS"]
-        )
-        st.altair_chart(
-            alt.layer(login_line, order_line).resolve_scale(y="independent"),
-            use_container_width=True
-        )
+            # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
+    st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+    chart_df = de_data.sort_values("DT")
+    st.write("Chart Data Sample:", chart_df[["DT", "TOTAL LOGIN MINS", "TOTAL ORDERS"]].head())
+    base = alt.Chart(chart_df).encode(x="DT:T")
+    login_line = base.mark_line(color="#1f77b4").encode(
+        y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+        tooltip=["DT", "TOTAL LOGIN MINS"]
+    )
+    order_line = base.mark_line(color="#ff7f0e").encode(
+        y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+        tooltip=["DT", "TOTAL ORDERS"]
+    )
+    st.altair_chart(
+        alt.layer(login_line, order_line).resolve_scale(y="independent"),
+        use_container_width=True
+    )
+except Exception as e:
+    st.error(f"Error generating chart: {e}")
 
 
          # --- HOURLY LOGIN VS ORDERS ---
