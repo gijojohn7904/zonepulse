@@ -1,3 +1,5 @@
+st.write("Loaded from: ", __file__)
+
 import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
