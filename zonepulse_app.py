@@ -201,19 +201,18 @@ if "DE_ID" in df.columns:
             unsafe_allow_html=True
         )
 
-# --- PROFILE INFO (zone, city, tenure, age)
-zone = de_data['ZONE'].iloc[0]
-city = de_data['CITY'].iloc[0]
-extra = []
-if "TENURE_BUCKET" in de_data.columns:
-    raw_tenure = str(de_data['TENURE_BUCKET'].iloc[0])
-    trimmed_tenure = raw_tenure[2:] if len(raw_tenure) > 2 else raw_tenure
-    extra.append(f"🗓️ <b>Tenure:</b> {trimmed_tenure}")
-if "AGE_BUCKET" in de_data.columns:
-    raw_age = str(de_data['AGE_BUCKET'].iloc[0])
-    trimmed_age = raw_age[2:] if len(raw_age) > 2 else raw_age
-    extra.append(f"🎂 <b>Age:</b> {trimmed_age}")
-
+        # --- PROFILE INFO (zone, city, tenure, age)
+        zone = de_data['ZONE'].iloc[0]
+        city = de_data['CITY'].iloc[0]
+        extra = []
+        if "TENURE_BUCKET" in de_data.columns:
+            raw_tenure = str(de_data['TENURE_BUCKET'].iloc[0])
+            trimmed_tenure = raw_tenure[2:] if len(raw_tenure) > 2 else raw_tenure
+            extra.append(f"🗓️ <b>Tenure:</b> {trimmed_tenure}")
+        if "AGE_BUCKET" in de_data.columns:
+            raw_age = str(de_data['AGE_BUCKET'].iloc[0])
+            trimmed_age = raw_age[2:] if len(raw_age) > 2 else raw_age
+            extra.append(f"🎂 <b>Age:</b> {trimmed_age}")
 
         st.markdown(
             f"**📍 Zone:** {zone}  |  🏣️ **City:** {city}" + (" | " + " | ".join(extra) if extra else ""),
@@ -266,6 +265,23 @@ if "AGE_BUCKET" in de_data.columns:
                 tooltip=["WEEK", metric]
             ).properties(title=f"📊 {metric} by Week")
             col.altair_chart(chart, use_container_width=True)
+
+        # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
+        st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+        chart_df = de_data.sort_values("DT")
+        base = alt.Chart(chart_df).encode(x="DT:T")
+        login_line = base.mark_line(color="#1f77b4").encode(
+            y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+            tooltip=["DT", "TOTAL LOGIN MINS"]
+        )
+        order_line = base.mark_line(color="#ff7f0e").encode(
+            y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+            tooltip=["DT", "TOTAL ORDERS"]
+        )
+        st.altair_chart(
+            alt.layer(login_line, order_line).resolve_scale(y="independent"),
+            use_container_width=True
+        )
 
         # --- LOGIN MINUTES VS TOTAL ORDERS CHART ---
         st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
