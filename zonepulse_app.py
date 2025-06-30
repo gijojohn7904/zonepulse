@@ -1,4 +1,4 @@
-st.write("Loaded from: ", __file__)
+st.write("Gijo was here!")
 
 import streamlit.components.v1 as components
 import streamlit as st
