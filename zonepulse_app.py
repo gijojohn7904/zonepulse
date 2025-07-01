@@ -171,8 +171,8 @@ def render_stars(rating, max_stars=5):
     empty = max_stars - full - half
     return "⭐" * full + ("✰" if half else "") + "☆" * empty
 
-# 👤 Individual DE-wise View
 if uploaded_file:
+    # 👤 Individual DE-wise View
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
@@ -201,7 +201,7 @@ if uploaded_file:
                 unsafe_allow_html=True
             )
 
-            # --- PROFILE INFO (zone, city, tenure, age)
+            # --- PROFILE INFO ---
             zone = de_data['ZONE'].iloc[0]
             city = de_data['CITY'].iloc[0]
             extra = []
@@ -267,7 +267,14 @@ if uploaded_file:
                 col.altair_chart(chart, use_container_width=True)
 
             # --- LOGIN MINUTES VS TOTAL ORDERS CHART (centered) ---
-            st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+            st.markdown(
+                """
+                <div style='display: flex; justify-content: center;'>
+                  <div style='width: 90%; max-width: 700px;'>
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown("### 📈 Login Minutes vs Total Orders Over Time", unsafe_allow_html=True)
             chart_df = de_data.sort_values("DT")
             base = alt.Chart(chart_df).encode(x="DT:T")
             login_line = base.mark_line(color="#1f77b4").encode(
@@ -282,6 +289,7 @@ if uploaded_file:
                 alt.layer(login_line, order_line).resolve_scale(y="independent"),
                 use_container_width=True
             )
+            st.markdown("</div></div>", unsafe_allow_html=True)
 
             # --- HOURLY LOGIN VS ORDERS ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
