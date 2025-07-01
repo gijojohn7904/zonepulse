@@ -172,8 +172,8 @@ def render_stars(rating, max_stars=5):
     return "⭐" * full + ("✰" if half else "") + "☆" * empty
 
 # 👤 Individual DE-wise View
-st.markdown("## 👤 Individual DE-wise View")
 if uploaded_file:
+    st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
