@@ -191,44 +191,10 @@ if uploaded_file:
                 tooltip=["Rain_Participation_%", "Rain_Workers"]
             )
             st.altair_chart(chart, use_container_width=True)
-            # --- Download Buttons in One Line with Styling ---
-        rain_cols = ["DE_ID", "DE_NAME", "DE_SHIFT", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE"]
-        rain_workers_data = rain_workers[rain_cols] if not rain_workers.empty else pd.DataFrame(columns=rain_cols)
-        active_ids = rain_active["DE_ID"].unique()
-        all_ids = rain_df["DE_ID"].unique()
-        no_show_ids = set(all_ids) - set(active_ids)
-        no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
-        no_show_data = no_show_df[rain_cols] if not no_show_df.empty else pd.DataFrame(columns=rain_cols)
-
-        col1, col2 = st.columns([1, 1])
-
-        with col1:
-            st.download_button(
-                label="📥 Rain Day Workers (CSV)",
-                data=rain_workers_data.to_csv(index=False),
-                file_name="rain_day_workers.csv",
-                mime="text/csv",
-                key="rain_workers_dl",
-                help="Download list of DEs who worked on rain days",
-                type="primary",
-                use_container_width=True
-            )
-
-        with col2:
-            st.download_button(
-                label="📥 Rain Day No-Shows (CSV)",
-                data=no_show_data.to_csv(index=False),
-                file_name="rain_day_no_shows.csv",
-                mime="text/csv",
-                key="rain_noshows_dl",
-                help="Download list of DEs who did not login on rain days",
-                type="secondary",
-                use_container_width=True
-            )
         else:
             st.info("No DEs worked on rain days.")
-        else:
-            st.warning("Required rain columns missing in data.")
+    else:
+        st.warning("Required rain columns missing in data.")
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
