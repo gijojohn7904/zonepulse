@@ -171,7 +171,8 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[c for c in df.columns if c.startswith("LH_")]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
 
-    st.markdown("## 🌧️ Rain Day Participation Analysis")
+# ---------------------- Rain Day Participation Analysis ----------------------
+st.markdown("## 🌧️ Rain Day Participation Analysis")
 
 if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
     rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
@@ -196,10 +197,10 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
         st.altair_chart(chart, use_container_width=True)
 
         # --- Download Buttons in One Row ---
-        colA, colB = st.columns(2)
         rain_cols = ["DE_ID", "DE_NAME", "DE_SHIFT", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE"]
+        col1, col2 = st.columns(2)
 
-        with colA:
+        with col1:
             if not rain_workers.empty:
                 st.download_button(
                     "📥 Download Rain Day Workers",
@@ -208,7 +209,7 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
                     mime="text/csv"
                 )
 
-        with colB:
+        with col2:
             active_ids = rain_active["DE_ID"].unique()
             all_ids = rain_df["DE_ID"].unique()
             no_show_ids = set(all_ids) - set(active_ids)
