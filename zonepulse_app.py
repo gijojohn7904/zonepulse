@@ -1,5 +1,5 @@
 import streamlit.components.v1 as components
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
@@ -171,61 +171,30 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[c for c in df.columns if c.startswith("LH_")]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
 
-# ---------------------- Rain Day Participation Analysis ----------------------
-st.markdown("## 🌧️ Rain Day Participation Analysis")
-
-if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
-    rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-    st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
-
-    rain_df = df[df["DT"].isin(rain_days)]
-    rain_active = rain_df[rain_df["TOTAL LOGIN MINS"] > 0]
-    rain_workers = rain_active[rain_active["RAIN_FLAG"] == 1]
-
-    if not rain_active.empty:
-        active_summary = rain_active.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
-        participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
-        rain_stats = pd.merge(active_summary, participated, on="ZONE", how="left").fillna(0)
-        rain_stats["Rain_Participation_%"] = (rain_stats["Rain_Workers"] / rain_stats["Total_DEs_On_Rain_Days"]) * 100
-        st.dataframe(rain_stats.sort_values("Rain_Participation_%", ascending=False))
-
-        chart = alt.Chart(rain_stats).mark_bar().encode(
-            x=alt.X("ZONE:N", sort="-y"),
-            y=alt.Y("Rain_Participation_%:Q"),
-            tooltip=["Rain_Participation_%", "Rain_Workers"]
-        )
-        st.altair_chart(chart, use_container_width=True)
-
-        # --- Download Buttons in One Row ---
-        rain_cols = ["DE_ID", "DE_NAME", "DE_SHIFT", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE"]
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if not rain_workers.empty:
-                st.download_button(
-                    "📥 Download Rain Day Workers",
-                    data=rain_workers[rain_cols].to_csv(index=False),
-                    file_name="rain_day_workers.csv",
-                    mime="text/csv"
-                )
-
-        with col2:
-            active_ids = rain_active["DE_ID"].unique()
-            all_ids = rain_df["DE_ID"].unique()
-            no_show_ids = set(all_ids) - set(active_ids)
-            no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
-            if not no_show_df.empty:
-                st.download_button(
-                    "📥 Download Rain Day No-Shows",
-                    data=no_show_df[rain_cols].to_csv(index=False),
-                    file_name="rain_day_no_shows.csv",
-                    mime="text/csv"
-                )
+    # ---------------------- RAIN PARTICIPATION ----------------------
+    st.markdown("## 🌧️ Rain Day Participation Analysis")
+    if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
+        rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+        st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
+        rain_df = df[df["DT"].isin(rain_days)]
+        rain_active = rain_df[rain_df["TOTAL LOGIN MINS"] > 0]
+        rain_workers = rain_active[rain_active["RAIN_FLAG"] == 1]
+        if not rain_active.empty:
+            active_summary = rain_active.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
+            participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
+            rain_stats = pd.merge(active_summary, participated, on="ZONE", how="left").fillna(0)
+            rain_stats["Rain_Participation_%"] = (rain_stats["Rain_Workers"] / rain_stats["Total_DEs_On_Rain_Days"]) * 100
+            st.dataframe(rain_stats.sort_values("Rain_Participation_%", ascending=False))
+            chart = alt.Chart(rain_stats).mark_bar().encode(
+                x=alt.X("ZONE:N", sort="-y"),
+                y=alt.Y("Rain_Participation_%:Q"),
+                tooltip=["Rain_Participation_%", "Rain_Workers"]
+            )
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("No DEs worked on rain days.")
     else:
-        st.info("No DEs worked on rain days.")
-else:
-    st.warning("Required rain columns missing in data.")
-
+        st.warning("Required rain columns missing in data.")
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
@@ -421,6 +390,4 @@ components.html("""
     <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
 </div>
 """, height=170)
-
-
 
