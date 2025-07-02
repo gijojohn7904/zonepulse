@@ -167,7 +167,7 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-st.markdown("## 🌧️ Rain Day Participation Analysis")
+st.markdown("## 🌧️ Rain Day Participation-DE Wise")
 
 if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
     rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
