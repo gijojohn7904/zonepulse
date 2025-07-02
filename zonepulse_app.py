@@ -170,118 +170,87 @@ if uploaded_file:
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
-        de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
-        if selected_de != "None":
-            de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-            de_name = de_data['DE_NAME'].iloc[0]
-            # Rating
-            avg_rating = None
-            stars = ""
-            if "TOTAL_RATING" in de_data.columns and "TOTAL_ORDERS_RATED" in de_data.columns:
-                total_rating = de_data["TOTAL_RATING"].sum()
-                total_rated = de_data["TOTAL_ORDERS_RATED"].sum()
-                avg_rating = round(total_rating / total_rated, 2) if total_rated > 0 else None
-                if avg_rating is not None:
-                    stars = render_stars(avg_rating)
-                    rating_text = f"{stars} <span style='color:#888'>({avg_rating})</span>"
-                else:
-                    rating_text = "<span style='color:#888'>No Ratings</span>"
-            else:
-                rating_text = "<span style='color:#888'>No Ratings</span>"
-            st.markdown(f"### {de_name} &nbsp; {rating_text}", unsafe_allow_html=True)
-            # Profile Info
-            zone = de_data['ZONE'].iloc[0]
-            city = de_data['CITY'].iloc[0]
-            extra = []
-            if "TENURE_BUCKET" in de_data.columns:
-                raw_tenure = str(de_data['TENURE_BUCKET'].iloc[0])
-                trimmed_tenure = raw_tenure[2:] if len(raw_tenure) > 2 else raw_tenure
-                extra.append(f"🗓️ <b>Tenure:</b> {trimmed_tenure}")
-            if "AGE_BUCKET" in de_data.columns:
-                raw_age = str(de_data['AGE_BUCKET'].iloc[0])
-                trimmed_age = raw_age[2:] if len(raw_age) > 2 else raw_age
-                extra.append(f"🎂 <b>Age:</b> {trimmed_age}")
-            st.markdown(
-                f"**📍 Zone:** {zone}  |  🏣️ **City:** {city}" + (" | " + " | ".join(extra) if extra else ""),
-                unsafe_allow_html=True
-            )
-            # Metrics Block
-            total_days = de_data.shape[0]
-            total_login = de_data["TOTAL LOGIN MINS"].sum()
-            total_orders = de_data["TOTAL ORDERS"].sum()
-            avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
-            idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
-            total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
-            total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
-            total_weekly_deduction = de_data["WEEKLY_DEDUCTIONS"].sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
-            total_other_daily_deduction = de_data["OTHER_DAILY_DEDUCTIONS"].sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
-            total_deductions = total_weekly_deduction + total_other_daily_deduction
-            net_earnings = total_earnings - total_deductions
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("🔕️ Active Days", total_days)
-            col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 2))
-            col3.metric("🔵️ Total Orders", int(total_orders))
-            col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
-            col5, col6, col7, col8 = st.columns(4)
-            col5.metric("⛔ Rejected Orders", int(total_rejected))
-            col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
-            col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
-            col8.metric("🟢 Net Earnings", f"₹{round(net_earnings, 2)}")
-            # Weekly charts
-            st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
-            de_data["WEEK"] = de_data["WEEK"].astype(str)
-            weekly_df = de_data.groupby("WEEK").agg(
-                Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
-                Orders=("TOTAL ORDERS", "sum"),
-                Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
-                Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
-            ).reset_index()
-            metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
-            colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
-            chart_cols = st.columns(2)
-            for i, metric in enumerate(metrics):
-                col = chart_cols[i % 2]
-                chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
-                    x=alt.X("WEEK", sort=None),
-                    y=alt.Y(metric, type="quantitative"),
-                    tooltip=["WEEK", metric]
-                ).properties(title=f"📊 {metric} by Week")
-                col.altair_chart(chart, use_container_width=True)
-            # Login vs Order Trend
-            st.markdown(
-                """
-                <div style='display: flex; justify-content: center;'>
-                  <div style='width: 90%; max-width: 700px;'>
-                """,
-                unsafe_allow_html=True
-            )
-            st.markdown("### 📈 Login Minutes vs Total Orders Over Time", unsafe_allow_html=True)
-            chart_df = de_data.sort_values("DT")
-            base = alt.Chart(chart_df).encode(x="DT:T")
-            login_line = base.mark_line(color="#1f77b4").encode(
-                y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
-                tooltip=["DT", "TOTAL LOGIN MINS"]
-            )
-            order_line = base.mark_line(color="#ff7f0e").encode(
-                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
-                tooltip=["DT", "TOTAL ORDERS"]
-            )
-            st.altair_chart(
-                alt.layer(login_line, order_line).resolve_scale(y="independent"),
-                use_container_width=True
-            )
-            st.markdown("</div></div>", unsafe_allow_html=True)
-            # Hourly Login vs Orders
-            st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
-            hourly_records = []
-            for _, row in de_data.iterrows():
-                date = row["DT"]
-                for hr in range(24):
-                    lh_col = f"LH_{str(hr).zfill(2)}"
-                    fd_col = f"FD_{str(hr).zfill(2)}"
-                    login_min = row[lh_col] if lh_col in row else 0
-                    orders = row[fd_col] if fd_col in row else 0
+    de_ids = df["DE_ID"].dropna().astype(str).unique()
+    selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
+    if selected_de != "None":
+        de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
+        st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
+        st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
+
+        total_days = de_data.shape[0]
+        total_login = de_data["TOTAL LOGIN MINS"].sum()
+        total_orders = de_data["TOTAL ORDERS"].sum()
+        avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
+        idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
+        total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
+        total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+        # 💡 NEW: Calculate total deductions (handle NaN, missing columns)
+        weekly_ded = de_data["WEEKLY_DEDUCTIONS"].fillna(0).sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
+        daily_ded = de_data["OTHER_DAILY_DEDUCTIONS"].fillna(0).sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
+        total_deductions = weekly_ded + daily_ded
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🔕️ Active Days", total_days)
+        col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 2))
+        col3.metric("🔵️ Total Orders", int(total_orders))
+        col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
+
+        col5, col6, col7 = st.columns(3)
+        col5.metric("⛔ Rejected Orders", int(total_rejected))
+        col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
+        col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
+
+        st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
+        de_data["WEEK"] = de_data["WEEK"].astype(str)
+        weekly_df = de_data.groupby("WEEK").agg(
+            Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
+            Orders=("TOTAL ORDERS", "sum"),
+            Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
+            Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
+        ).reset_index()
+
+        metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
+        colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
+        chart_cols = st.columns(2)
+        for i, metric in enumerate(metrics):
+            col = chart_cols[i % 2]
+            chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
+                x=alt.X("WEEK", sort=None),
+                y=alt.Y(metric, type="quantitative"),
+                tooltip=["WEEK", metric]
+            ).properties(title=f"📊 {metric} by Week")
+            col.altair_chart(chart, use_container_width=True)
+
+        st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+        chart_df = de_data.sort_values("DT")
+        base = alt.Chart(chart_df).encode(x="DT:T")
+
+        login_line = base.mark_line(color="#1f77b4").encode(
+            y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+            tooltip=["DT", "TOTAL LOGIN MINS"]
+        )
+
+        order_line = base.mark_line(color="#ff7f0e").encode(
+            y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+            tooltip=["DT", "TOTAL ORDERS"]
+        )
+
+        st.altair_chart(
+            alt.layer(login_line, order_line).resolve_scale(y="independent"),
+            use_container_width=True
+        )
+
+        st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
+        hourly_records = []
+
+        for _, row in de_data.iterrows():
+            date = row["DT"]
+            for hr in range(24):
+                lh_col = f"LH_{str(hr).zfill(2)}"
+                fd_col = f"FD_{str(hr).zfill(2)}"
+                if lh_col in row and fd_col in row:
+                    login_min = row[lh_col]
+                    orders = row[fd_col]
                     if login_min > 0 or orders > 0:
                         hourly_records.append({
                             "Date": date,
@@ -289,19 +258,14 @@ if uploaded_file:
                             "Login Minutes": login_min,
                             "Orders": orders
                         })
-            if hourly_records:
-                hourly_df = pd.DataFrame(hourly_records)
-                st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
-                st.download_button(
-                    "📥 Download DE Hourly Log",
-                    data=hourly_df.to_csv(index=False),
-                    file_name=f"{selected_de}_hourly_log.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.info("ℹ️ No hourly data found for this DE.")
-    else:
-        st.info("No DE_ID column found in your uploaded file.")
+
+        if hourly_records:
+            hourly_df = pd.DataFrame(hourly_records)
+            st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
+            st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False), file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
+        else:
+            st.info("ℹ️ No hourly data found for this DE.")
+
 
     # ---------------------- NO SHOW SECTION ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
