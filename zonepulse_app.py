@@ -35,11 +35,11 @@ def check_password():
 check_password()  # 🔒 Call this function to enforce password
 
 # ---------------------- PAGE HEADER ----------------------
-st.set_page_config(page_title="ZonePulse – DE Supply Efficiencyi Monitor", layout="wide")
+st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
 <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
 <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
-This tool is intended <b>strictly for internal use only</b>.<br>
+This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
 Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
 Please handle this information responsibly, in accordance with company data policies.
 </div>
@@ -369,5 +369,25 @@ if uploaded_file:
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
 
-
+# ---------------------- FOOTER BRANDING ----------------------
+components.html("""
+<link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+<div style='
+    background-color:#f8f9fa;
+    padding:15px;
+    border-radius:12px;
+    margin-top:50px;
+    text-align:center;
+    font-family:"Inter", sans-serif;
+    font-size:14px;
+    color:#333;
+    border:1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+'>
+    Built by <b>Gijo Kochuparambil John</b> –  Assistant Manager, Sourcing & Onboarding, Swiggy<br>
+     <a href='mailto:gijo.j@swiggy.in' style='text-decoration:none;color:#0072b1;'>gijo.j@swiggy.in</a> |
+     <a href='https://www.linkedin.com/in/gijojohn/' target='_blank' style='text-decoration:none;color:#0072b1;'>LinkedIn</a><br>
+    <sub style='color:#666;'>#FleetFirst | Empowering Swiggy with data-driven fleet optimization</sub>
+</div>
+""", height=170)
 
