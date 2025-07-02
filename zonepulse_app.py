@@ -308,13 +308,14 @@ if uploaded_file:
 
         filter_type = st.selectbox(
             "Filter by Rain Participation",
-            ["Rain DE", "Non-Rain DE", "All DEs"]
+            ["Rain DE", "Non-Rain DE", "No-Show DE (Never logged in on rain day)", "All DEs"]
         )
-        
         if filter_type == "Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Rain DE"]
+           show_df = all_participation[all_participation["Rain_DE_Type"] == "Rain DE"]
         elif filter_type == "Non-Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Non-Rain DE"]
+           show_df = all_participation[all_participation["Rain_DE_Type"] == "Non-Rain DE"]
+        elif filter_type == "No-Show DE (Never logged in on rain day)":
+            show_df = all_participation[all_participation["Rain_DE_Type"] == "No-Show DE (Never logged in on rain day)"]
         else:
             show_df = all_participation
 
