@@ -173,7 +173,6 @@ if uploaded_file:
                 de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
                 st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
                 st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
-
                 total_days = de_data.shape[0]
                 total_login = de_data["TOTAL LOGIN MINS"].sum()
                 total_orders = de_data["TOTAL ORDERS"].sum()
@@ -181,6 +180,13 @@ if uploaded_file:
                 idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
                 total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
                 total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+
+       # 💡 NEW: Calculate total deductions (handle NaN, missing columns)
+                weekly_ded = de_data["WEEKLY_DEDUCTIONS"].fillna(0).sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
+                daily_ded = de_data["OTHER_DAILY_DEDUCTIONS"].fillna(0).sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
+                total_deductions = weekly_ded + daily_ded
+
+                
 
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("🔕️ Active Days", total_days)
@@ -191,6 +197,7 @@ if uploaded_file:
                 col5, col6 = st.columns(2)
                 col5.metric("⛔ Rejected Orders", int(total_rejected))
                 col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
+                col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
 
                 st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
                 de_data["WEEK"] = de_data["WEEK"].astype(str)
