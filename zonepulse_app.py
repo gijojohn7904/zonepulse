@@ -171,7 +171,7 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[c for c in df.columns if c.startswith("LH_")]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
 
-    # ---------------------- Rain Day Participation Analysis ----------------------
+# ---------------------- Rain Day Participation Analysis ----------------------
 st.markdown("## 🌧️ Rain Day Participation Analysis")
 
 if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
@@ -205,23 +205,31 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
         no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
         no_show_data = no_show_df[rain_cols] if not no_show_df.empty else pd.DataFrame(columns=rain_cols)
 
-        st.markdown("""
-        <div style='display:flex; justify-content:space-between; margin-top:20px;'>
-            <div>
-                <form method='post'>
-                    <button style='background-color:#ffdddd; padding:8px 12px; border-radius:6px; border:1px solid #ffaaaa; color:#b20000;' formaction='#' formmethod='post'>📥 Download Rain Day Workers</button>
-                </form>
-            </div>
-            <div>
-                <form method='post'>
-                    <button style='background-color:#ffe0e0; padding:8px 12px; border-radius:6px; border:1px solid #ffaaaa; color:#8a0000;' formaction='#' formmethod='post'>📥 Download Rain Day No-Shows</button>
-                </form>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
 
-        st.download_button("📥 Rain Day Workers (CSV)", data=rain_workers_data.to_csv(index=False), file_name="rain_day_workers.csv", mime="text/csv", key="rain_workers_dl")
-        st.download_button("📥 Rain Day No-Shows (CSV)", data=no_show_data.to_csv(index=False), file_name="rain_day_no_shows.csv", mime="text/csv", key="rain_noshows_dl")
+        with col1:
+            st.download_button(
+                label="📥 Rain Day Workers (CSV)",
+                data=rain_workers_data.to_csv(index=False),
+                file_name="rain_day_workers.csv",
+                mime="text/csv",
+                key="rain_workers_dl",
+                help="Download list of DEs who worked on rain days",
+                use_container_width=True,
+                type="primary"
+            )
+
+        with col2:
+            st.download_button(
+                label="📥 Rain Day No-Shows (CSV)",
+                data=no_show_data.to_csv(index=False),
+                file_name="rain_day_no_shows.csv",
+                mime="text/csv",
+                key="rain_noshows_dl",
+                help="Download list of DEs who did not login on rain days",
+                use_container_width=True,
+                type="secondary"
+            )
 
     else:
         st.info("No DEs worked on rain days.")
