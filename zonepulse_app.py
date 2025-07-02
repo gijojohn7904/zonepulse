@@ -167,33 +167,7 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-st.markdown("## 🌧️ Rain Day Participation vs Skippers")
 
-if "RAIN_FLAG" in df.columns and "DT" in df.columns:
-    rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-    worked_on_rain_days = df[df["DT"].isin(rain_dates)]
-    rain_workers = worked_on_rain_days[worked_on_rain_days["RAIN_FLAG"] == 1]
-    rain_skippers = worked_on_rain_days[worked_on_rain_days["RAIN_FLAG"] == 0]
-
-    st.markdown(f"Total Unique Rain Days: **{len(rain_dates)}**")
-
-    # Rain Workers Summary
-    st.markdown("### ✅ DEs Who Delivered in Rain")
-    if not rain_workers.empty:
-        st.dataframe(rain_workers[["DE_ID", "DE_NAME", "ZONE", "CITY", "DT", "TOTAL ORDERS", "TOTAL LOGIN MINS"]])
-        st.download_button("📥 Download Rain Workers", data=rain_workers.to_csv(index=False), file_name="rain_workers.csv", mime="text/csv")
-    else:
-        st.info("No DEs delivered during rain days.")
-
-    # Rain Skippers Summary
-    st.markdown("### ⚠️ DEs Logged In But Didn’t Deliver in Rain")
-    if not rain_skippers.empty:
-        st.dataframe(rain_skippers[["DE_ID", "DE_NAME", "ZONE", "CITY", "DT", "TOTAL ORDERS", "TOTAL LOGIN MINS"]])
-        st.download_button("📥 Download Rain Skippers", data=rain_skippers.to_csv(index=False), file_name="rain_skippers.csv", mime="text/csv")
-    else:
-        st.success("No DEs skipped rain day duties.")
-else:
-    st.warning("RAIN_FLAG or DT column missing. Please upload updated master file.")
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
