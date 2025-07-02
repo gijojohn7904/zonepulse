@@ -172,9 +172,9 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
 
 # ---------------------- Rain Day Participation Analysis ----------------------
-st.markdown("## 🌧️ Rain Day Participation Analysis")
+    st.markdown("## 🌧️ Rain Day Participation Analysis")
 
-if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
+    if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
     rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
     st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
 
