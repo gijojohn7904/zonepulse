@@ -262,87 +262,57 @@ if uploaded_file:
             else:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-st.markdown("## 🌧️ Rain Day Participation Analysis")
-
-if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
-    rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-    total_rain_days = len(rain_dates)
-
-    # Subset: All rows that are rain days (RAIN_FLAG == 1)
-    rain_day_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1)]
-
-    # DEs who worked on rain days (logged in)
-    logged_in_rain_df = rain_day_df[rain_day_df["TOTAL LOGIN MINS"] > 0]
-
-    # Rain DEs: Logged in AND handled at least one order (delivered or rejected)
-    rain_de_df = logged_in_rain_df[
-        (logged_in_rain_df["TOTAL ORDERS"] > 0) | 
-        (logged_in_rain_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
-    ]
-    rain_de_participation = rain_de_df.groupby("DE_ID").agg(
-        DE_NAME=("DE_NAME", "first"),
-        Rain_Days_Worked=("DT", "nunique")
-    ).reset_index()
-    rain_de_participation["Rain_DE_Type"] = "Rain DE"
-
-    # Non-Rain DEs (who logged in on rain days but took no orders)
-    non_rain_but_loggedin_df = logged_in_rain_df[
-        ~(
-            (logged_in_rain_df["TOTAL ORDERS"] > 0) |
-            (logged_in_rain_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
-        )
-    ]
-    non_rain_but_loggedin_part = non_rain_but_loggedin_df.groupby("DE_ID").agg(
-        DE_NAME=("DE_NAME", "first"),
-        Rain_Days_Worked=("DT", "nunique")
-    ).reset_index()
-    non_rain_but_loggedin_part["Rain_DE_Type"] = "Non-Rain DE (Rain day, no orders)"
-
-    # DEs who never worked on rain days at all
-    all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
-    de_worked_on_rain_day = pd.concat([rain_de_participation, non_rain_but_loggedin_part], ignore_index=True)["DE_ID"].unique()
-    never_rain_de = all_des[~all_des["DE_ID"].isin(de_worked_on_rain_day)]
-    never_rain_de = never_rain_de.assign(
-        Rain_Days_Worked=0,
-        Rain_DE_Type="Non-Rain DE (Never worked on rain day)"
-    )
-
-    # Combine all categories
-    all_participation = pd.concat([
-        rain_de_participation,
-        non_rain_but_loggedin_part,
-        never_rain_de
-    ], ignore_index=True)
-
-    all_participation["Total_Rain_Days"] = total_rain_days
-    all_participation["Participation_%"] = (
-        (all_participation["Rain_Days_Worked"] / total_rain_days) * 100
-    ).round(2) if total_rain_days > 0 else 0
-
-    # User filter: Rain DE, Non-Rain DE (rain day, no orders), Non-Rain DE (never worked on rain day), All
-    filter_type = st.selectbox(
-        "Filter by Rain Participation",
-        [
-            "Rain DE",
-            "Non-Rain DE (Rain day, no orders)",
-            "Non-Rain DE (Never worked on rain day)",
-            "All"
-        ]
-    )
-    if filter_type != "All":
-        show_df = all_participation[all_participation["Rain_DE_Type"] == filter_type]
+    # 🌧️ Rain Day Participation Analysis
+    st.markdown("## 🌧️ Rain Day Participation Analysis")
+    if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
+        # ...Rain Participation code as you have it...
+        # All your Rain DE/Non-Rain DE logic
     else:
-        show_df = all_participation
+        st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
 
-    st.dataframe(show_df.sort_values("Participation_%", ascending=False))
-    st.download_button(
-        "🌧️ Download Rain Day Participation",
-        data=show_df.to_csv(index=False),
-        file_name="rain_day_participation.csv",
-        mime="text/csv"
-    )
+    # ---------------- No Show Section ----------------
+    st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
+    col_prev, col_curr = st.columns(2)
+    with col_prev:
+        prev_dates = st.date_input("🗕️ Select Previous Period", [])
+    with col_curr:
+        curr_dates = st.date_input("🗕️ Select Current Period", [])
+
+    if len(prev_dates) == 2 and len(curr_dates) == 2:
+        prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
+        curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
+
+        prev_logged_in = prev_df[prev_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
+        curr_logged_in = curr_df[curr_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
+
+        no_show_ids = set(prev_logged_in) - set(curr_logged_in)
+        no_show_df = prev_df[prev_df["DE_ID"].isin(no_show_ids)]
+
+        if not no_show_df.empty:
+            summary_df = no_show_df.groupby("DE_ID").agg(
+                DE_NAME=("DE_NAME", "first"),
+                ZONE=("ZONE", "first"),
+                CITY=("CITY", "first"),
+                Last_Seen_DT=("DT", "max"),
+                Total_Login_Mins=("TOTAL LOGIN MINS", "sum"),
+                Total_Orders=("TOTAL ORDERS", "sum"),
+                Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in no_show_df.columns else ("TOTAL ORDERS", "sum")
+            ).reset_index()
+
+            summary_df["Total_Login_Hrs"] = (summary_df["Total_Login_Mins"] / 60).round(2)
+            summary_df["Earnings"] = summary_df["Earnings"].round(2)
+
+            display_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "Last_Seen_DT", "Total_Login_Hrs", "Total_Orders", "Earnings"]
+            st.dataframe(summary_df[display_cols].sort_values(by="Last_Seen_DT", ascending=False))
+            st.download_button("📅 Download No-Show DEs", data=summary_df[display_cols].to_csv(index=False), file_name="no_show_des.csv", mime="text/csv")
+        else:
+            st.success("🎉 No No-Show DEs found. Great retention!")
+    else:
+        st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
+
 else:
-    st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
+    st.info("👆 Upload your DE Order vs Login File to get started.")
+
     # ---------------- No Show Section ----------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
