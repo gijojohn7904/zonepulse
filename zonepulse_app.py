@@ -195,61 +195,7 @@ if uploaded_file:
             st.info("No DEs worked on rain days.")
     else:
         st.warning("Required rain columns missing in data.")
-        # ---------------------- FILTERED DE DOWNLOAD SECTION ----------------------
-st.markdown("## 🧾 Custom DE Filter & Download")
-
-# Apply Filters
-filter_col1, filter_col2 = st.columns(2)
-with filter_col1:
-    rain_filter = st.selectbox("🌧️ Rain Participation", ["All", "Rain DEs", "Non-Rain DEs"])
-    min_orders = st.slider("🔢 Minimum Total Orders", 0, int(df["TOTAL ORDERS"].max()), 0)
-with filter_col2:
-    min_earnings = st.slider("💰 Minimum Daily Earnings", 0, int(df["DAILY_EARNINGS"].max()), 0)
-    peak_hour = st.selectbox("⏰ Peak Hour Filter", ["All"] + [f"FD_{str(h).zfill(2)}" for h in range(24)])
-
-# Date and location filters
-loc_col1, loc_col2 = st.columns(2)
-with loc_col1:
-    filter_city = st.selectbox("🏙️ Filter by City", ["All"] + sorted(df["CITY"].dropna().unique()))
-with loc_col2:
-    filter_zone = st.selectbox("📍 Filter by Zone", ["All"] + sorted(df["ZONE"].dropna().unique()))
-
-date_range = st.date_input("📅 Filter by Date Range", [df["DT"].min(), df["DT"].max()])
-
-# Apply filters
-filtered_df = df.copy()
-
-if rain_filter == "Rain DEs":
-    filtered_df = filtered_df[filtered_df["RAIN_FLAG"] == 1]
-elif rain_filter == "Non-Rain DEs":
-    filtered_df = filtered_df[filtered_df["RAIN_FLAG"] == 0]
-
-if filter_city != "All":
-    filtered_df = filtered_df[filtered_df["CITY"] == filter_city]
-if filter_zone != "All":
-    filtered_df = filtered_df[filtered_df["ZONE"] == filter_zone]
-
-if len(date_range) == 2:
-    filtered_df = filtered_df[(filtered_df["DT"] >= date_range[0]) & (filtered_df["DT"] <= date_range[1])]
-
-filtered_df = filtered_df[filtered_df["TOTAL ORDERS"] >= min_orders]
-filtered_df = filtered_df[filtered_df["DAILY_EARNINGS"] >= min_earnings]
-
-if peak_hour != "All" and peak_hour in df.columns:
-    filtered_df = filtered_df[filtered_df[peak_hour] > 0]
-
-# Display and download
-st.markdown("### 📋 Filtered DE View")
-if filtered_df.empty:
-    st.warning("No DEs match the selected criteria.")
-else:
-    st.dataframe(filtered_df.head(100))  # Show top 100 for performance
-    st.download_button("📥 Download Full Filtered DE Report", data=filtered_df.to_csv(index=False),
-                       file_name="filtered_de_data.csv", mime="text/csv")
-
-
-    
-
+       
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
