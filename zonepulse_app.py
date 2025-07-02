@@ -8,7 +8,7 @@ def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]
+            del st.session_state["password"]  # Wipe after use
         else:
             st.session_state["password_correct"] = False
 
@@ -20,6 +20,7 @@ def check_password():
         """, unsafe_allow_html=True)
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.stop()
+
     elif not st.session_state["password_correct"]:
         st.markdown("""
         ## 🚧 Restricted Access
@@ -30,10 +31,12 @@ def check_password():
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
-check_password()
+check_password()  # 🔒 Call this function to enforce password
 
+# Page config
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 
+# Confidentiality Notice
 st.markdown("""
 <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
 <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
@@ -43,11 +46,13 @@ Please handle this information responsibly, in accordance with company data poli
 </div>
 """, unsafe_allow_html=True)
 
+# Banner
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
 Monitor DE behavior, optimize login-to-order ratios, and ensure supply-demand harmony across every zone.
 """)
 
+# File uploader
 uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
 
 if uploaded_file:
@@ -61,6 +66,7 @@ if uploaded_file:
 
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
+    # 🔄 Two filters per row
     col1, col2 = st.columns(2)
     with col1:
         vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
@@ -93,11 +99,10 @@ if uploaded_file:
             selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
             if len(selected_dates) == 2:
                 df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-    # -------------------- ZONE LEVEL HOURLY REPORT --------------------
+    ### 1️⃣ ZONE-LEVEL HOURLY REPORT ###
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -142,10 +147,11 @@ if uploaded_file:
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
-    # ------------------- ATTRITION RISK DEs -------------------
+    ### 2️⃣ ATTRITION RISK DEs ###
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
+
     churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         churn_cols.append("REJECTED_ORDERS")
@@ -158,8 +164,19 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-    # ------------------- INDIVIDUAL DE-WISE VIEW -------------------
+    ### 3️⃣ INDIVIDUAL DE-WISE VIEW (with Rain Participation %) ###
     st.markdown("## 👤 Individual DE-wise View")
+    rain_participation_dict = {}
+    rain_dates = set()
+    if "RAIN_FLAG" in df.columns:
+        rain_dates = set(df[df["RAIN_FLAG"] == 1]["DT"].unique())
+        total_rain_days = len(rain_dates)
+        # Calculate per DE rain participation %
+        de_rain = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
+        de_rain_count = de_rain.groupby("DE_ID")["DT"].nunique().to_dict()
+        for de_id in df["DE_ID"].unique():
+            rain_participation_dict[de_id] = round((de_rain_count.get(de_id, 0) / total_rain_days) * 100, 2) if total_rain_days else 0
+
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
@@ -178,17 +195,19 @@ if uploaded_file:
             weekly_ded = de_data["WEEKLY_DEDUCTIONS"].fillna(0).sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
             daily_ded = de_data["OTHER_DAILY_DEDUCTIONS"].fillna(0).sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
             total_deductions = weekly_ded + daily_ded
+            rain_part = rain_participation_dict.get(de_data["DE_ID"].iloc[0], 0)
 
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4, col5 = st.columns(5)
             col1.metric("🔕️ Active Days", total_days)
             col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 2))
             col3.metric("🔵️ Total Orders", int(total_orders))
             col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
+            col5.metric("🌧️ Rain Participation %", f"{rain_part}%")
 
-            col5, col6, col7 = st.columns(3)
-            col5.metric("⛔ Rejected Orders", int(total_rejected))
-            col6.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
-            col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
+            col6, col7, col8 = st.columns(3)
+            col6.metric("⛔ Rejected Orders", int(total_rejected))
+            col7.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
+            col8.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
 
             st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
             de_data["WEEK"] = de_data["WEEK"].astype(str)
@@ -244,7 +263,6 @@ if uploaded_file:
                                 "Login Minutes": login_min,
                                 "Orders": orders
                             })
-
             if hourly_records:
                 hourly_df = pd.DataFrame(hourly_records)
                 st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
@@ -252,77 +270,37 @@ if uploaded_file:
             else:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-    # ---------------- RAIN DAY PARTICIPATION WITH NO-SHOW LOGIC ----------------
+    ### 4️⃣ RAIN DAY PARTICIPATION ANALYSIS (NEW LOGIC) ###
     st.markdown("## 🌧️ Rain Day Participation Analysis")
     if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
-        # Ensure WEEK is present for weekwise logic
-        df["WEEK"] = pd.to_datetime(df["DT"]).astype("datetime64[W]")
-
-        rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+        rain_dates = set(df[df["RAIN_FLAG"] == 1]["DT"].unique())
         total_rain_days = len(rain_dates)
 
-        # --- Rain DE: Worked and took at least one order (delivered or rejected) on rain day
-        rain_day_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
-        rain_de_df = rain_day_df[
-            (rain_day_df["TOTAL ORDERS"] > 0) |
-            (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
-        ]
-        rain_de_participation = rain_de_df.groupby("DE_ID").agg(
+        # 1. Rain DEs: RAIN_FLAG==1 and LOGIN>0 on rain day
+        rain_de_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
+        rain_de_part = rain_de_df.groupby("DE_ID").agg(
             DE_NAME=("DE_NAME", "first"),
             Rain_Days_Worked=("DT", "nunique")
         ).reset_index()
-        rain_de_participation["Rain_DE_Type"] = "Rain DE"
+        rain_de_part["Rain_DE_Type"] = "Rain DE"
 
-        # --- Non-Rain DE: Logged in on rain day, but no orders
-        non_rain_de_df = rain_day_df[
-            ~(
-                (rain_day_df["TOTAL ORDERS"] > 0) |
-                (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
-            )
-        ]
-        non_rain_de_participation = non_rain_de_df.groupby("DE_ID").agg(
+        # 2. Non-Rain DEs: DT in rain_dates, LOGIN>0, RAIN_FLAG==0
+        non_rain_de_df = df[(df["DT"].isin(rain_dates)) & (df["TOTAL LOGIN MINS"] > 0) & (df["RAIN_FLAG"] == 0)]
+        non_rain_de_part = non_rain_de_df.groupby("DE_ID").agg(
             DE_NAME=("DE_NAME", "first"),
             Rain_Days_Worked=("DT", "nunique")
         ).reset_index()
-        non_rain_de_participation["Rain_DE_Type"] = "Non-Rain DE"
+        non_rain_de_part["Rain_DE_Type"] = "Non-Rain DE"
 
-        # --- No-Show DE: Never logged in on rain day, but active in the same week before rain day
-        no_show_rows = []
-        rain_days_df = df[df["DT"].isin(rain_dates)].copy()
-        for rain_dt in rain_dates:
-            rain_dt = pd.to_datetime(rain_dt)
-            week_start = rain_dt - pd.to_timedelta(rain_dt.weekday(), unit='D')
-            week_df = df[(df["WEEK"] == week_start)]
-            rain_day_ids = week_df[(week_df["DT"] == rain_dt.date()) & (week_df["TOTAL LOGIN MINS"] == 0)]["DE_ID"].unique()
-            for de in rain_day_ids:
-                # Check if DE was active earlier that week before rain day
-                prior_days = week_df[
-                    (week_df["DE_ID"] == de) &
-                    (week_df["DT"] < rain_dt.date()) &
-                    (week_df["TOTAL LOGIN MINS"] > 0)
-                ]
-                if not prior_days.empty:
-                    no_show_rows.append({"DE_ID": de, "Rain_DT": rain_dt.date()})
-
-        no_show_de_ids = pd.DataFrame(no_show_rows)["DE_ID"].unique() if no_show_rows else []
-
-        # --- Participation Table
+        # 3. No-Show DEs: Never logged in on rain day
         all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
-        all_participation = pd.concat([rain_de_participation, non_rain_de_participation], ignore_index=True)
-        all_participation = all_des.merge(all_participation, on=["DE_ID", "DE_NAME"], how="left")
-        all_participation["Rain_Days_Worked"] = all_participation["Rain_Days_Worked"].fillna(0).astype(int)
+        de_logged_in_on_rain = set(pd.concat([rain_de_part["DE_ID"], non_rain_de_part["DE_ID"]]))
+        no_show_de = all_des[~all_des["DE_ID"].isin(de_logged_in_on_rain)].copy()
+        no_show_de["Rain_Days_Worked"] = 0
+        no_show_de["Rain_DE_Type"] = "No-Show DE"
 
-        def rain_type(row):
-            if row["DE_ID"] in rain_de_participation["DE_ID"].values:
-                return "Rain DE"
-            elif row["DE_ID"] in non_rain_de_participation["DE_ID"].values:
-                return "Non-Rain DE"
-            elif row["DE_ID"] in no_show_de_ids:
-                return "No-Show DE (Never logged in on rain day, but active in week)"
-            else:
-                return "No Rain Login"
-
-        all_participation["Rain_DE_Type"] = all_participation.apply(rain_type, axis=1)
+        # Combine all
+        all_participation = pd.concat([rain_de_part, non_rain_de_part, no_show_de], ignore_index=True)
         all_participation["Total_Rain_Days"] = total_rain_days
         all_participation["Participation_%"] = (
             (all_participation["Rain_Days_Worked"] / total_rain_days) * 100
@@ -330,14 +308,10 @@ if uploaded_file:
 
         filter_type = st.selectbox(
             "Filter by Rain Participation",
-            ["Rain DE", "Non-Rain DE", "No-Show DE (Never logged in on rain day, but active in week)", "All DEs"]
+            ["Rain DE", "Non-Rain DE", "No-Show DE", "All"]
         )
-        if filter_type == "Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Rain DE"]
-        elif filter_type == "Non-Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Non-Rain DE"]
-        elif filter_type == "No-Show DE (Never logged in on rain day, but active in week)":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "No-Show DE (Never logged in on rain day, but active in week)"]
+        if filter_type != "All":
+            show_df = all_participation[all_participation["Rain_DE_Type"] == filter_type]
         else:
             show_df = all_participation
 
@@ -351,7 +325,7 @@ if uploaded_file:
     else:
         st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
 
-    # ---------------- NO-SHOW DEs SECTION ----------------
+    ### 5️⃣ NO-SHOW DEs – PREVIOUSLY ACTIVE ###
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
     with col_prev:
