@@ -35,7 +35,7 @@ def check_password():
 check_password()
 
 # ---------------------- PAGE HEADER ----------------------
-st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
+st.set_page_config(page_title="ZonePulse – DE Supply Efficiencye Monitor", layout="wide")
 st.markdown("""
 <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
 <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
