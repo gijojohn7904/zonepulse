@@ -171,31 +171,62 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[c for c in df.columns if c.startswith("LH_")]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
 
-    # ---------------------- RAIN PARTICIPATION ----------------------
-    st.markdown("## 🌧️ Rain Day Participation Analysis")
-    if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
-        rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-        st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
-        rain_df = df[df["DT"].isin(rain_days)]
-        rain_active = rain_df[rain_df["TOTAL LOGIN MINS"] > 0]
-        rain_workers = rain_active[rain_active["RAIN_FLAG"] == 1]
-        if not rain_active.empty:
-            active_summary = rain_active.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
-            participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
-            rain_stats = pd.merge(active_summary, participated, on="ZONE", how="left").fillna(0)
-            rain_stats["Rain_Participation_%"] = (rain_stats["Rain_Workers"] / rain_stats["Total_DEs_On_Rain_Days"]) * 100
-            st.dataframe(rain_stats.sort_values("Rain_Participation_%", ascending=False))
-            chart = alt.Chart(rain_stats).mark_bar().encode(
-                x=alt.X("ZONE:N", sort="-y"),
-                y=alt.Y("Rain_Participation_%:Q"),
-                tooltip=["Rain_Participation_%", "Rain_Workers"]
-            )
-            st.altair_chart(chart, use_container_width=True)
-        else:
-            st.info("No DEs worked on rain days.")
-    else:
-        st.warning("Required rain columns missing in data.")
+    # ---------------------- Rain Day Participation Analysis ----------------------
+st.markdown("## 🌧️ Rain Day Participation Analysis")
 
+if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
+    rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+    st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
+
+    rain_df = df[df["DT"].isin(rain_days)]
+    rain_active = rain_df[rain_df["TOTAL LOGIN MINS"] > 0]
+    rain_workers = rain_active[rain_active["RAIN_FLAG"] == 1]
+
+    if not rain_active.empty:
+        active_summary = rain_active.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
+        participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
+        rain_stats = pd.merge(active_summary, participated, on="ZONE", how="left").fillna(0)
+        rain_stats["Rain_Participation_%"] = (rain_stats["Rain_Workers"] / rain_stats["Total_DEs_On_Rain_Days"]) * 100
+        st.dataframe(rain_stats.sort_values("Rain_Participation_%", ascending=False))
+
+        chart = alt.Chart(rain_stats).mark_bar().encode(
+            x=alt.X("ZONE:N", sort="-y"),
+            y=alt.Y("Rain_Participation_%:Q"),
+            tooltip=["Rain_Participation_%", "Rain_Workers"]
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+        # --- Download Buttons in One Line with Styling ---
+        rain_cols = ["DE_ID", "DE_NAME", "DE_SHIFT", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE"]
+        rain_workers_data = rain_workers[rain_cols] if not rain_workers.empty else pd.DataFrame(columns=rain_cols)
+        active_ids = rain_active["DE_ID"].unique()
+        all_ids = rain_df["DE_ID"].unique()
+        no_show_ids = set(all_ids) - set(active_ids)
+        no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
+        no_show_data = no_show_df[rain_cols] if not no_show_df.empty else pd.DataFrame(columns=rain_cols)
+
+        st.markdown("""
+        <div style='display:flex; justify-content:space-between; margin-top:20px;'>
+            <div>
+                <form method='post'>
+                    <button style='background-color:#ffdddd; padding:8px 12px; border-radius:6px; border:1px solid #ffaaaa; color:#b20000;' formaction='#' formmethod='post'>📥 Download Rain Day Workers</button>
+                </form>
+            </div>
+            <div>
+                <form method='post'>
+                    <button style='background-color:#ffe0e0; padding:8px 12px; border-radius:6px; border:1px solid #ffaaaa; color:#8a0000;' formaction='#' formmethod='post'>📥 Download Rain Day No-Shows</button>
+                </form>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.download_button("📥 Rain Day Workers (CSV)", data=rain_workers_data.to_csv(index=False), file_name="rain_day_workers.csv", mime="text/csv", key="rain_workers_dl")
+        st.download_button("📥 Rain Day No-Shows (CSV)", data=no_show_data.to_csv(index=False), file_name="rain_day_no_shows.csv", mime="text/csv", key="rain_noshows_dl")
+
+    else:
+        st.info("No DEs worked on rain days.")
+else:
+    st.warning("Required rain columns missing in data.")
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
