@@ -153,7 +153,7 @@ if uploaded_file:
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
     # ---------------------- CHURN RISK SECTION ----------------------
-    st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
+    st.markdown("## ⚠️ Potential Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
     churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
@@ -166,6 +166,35 @@ if uploaded_file:
     else:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
+
+# ---------------------- COMPUTE TOTALS ----------------------
+    df["TOTAL LOGIN MINS"] = df[[c for c in df.columns if c.startswith("LH_")]].sum(axis=1)
+    df["TOTAL ORDERS"] = df[[c for c in df.columns if c.startswith("FD_")]].sum(axis=1)
+
+    # ---------------------- RAIN PARTICIPATION ----------------------
+    st.markdown("## 🌧️ Rain Day Participation Analysis")
+    if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
+        rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+        st.write(f"🗓️ Total Rain Days: {len(rain_days)}")
+        rain_df = df[df["DT"].isin(rain_days)]
+        rain_active = rain_df[rain_df["TOTAL LOGIN MINS"] > 0]
+        rain_workers = rain_active[rain_active["RAIN_FLAG"] == 1]
+        if not rain_active.empty:
+            active_summary = rain_active.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
+            participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
+            rain_stats = pd.merge(active_summary, participated, on="ZONE", how="left").fillna(0)
+            rain_stats["Rain_Participation_%"] = (rain_stats["Rain_Workers"] / rain_stats["Total_DEs_On_Rain_Days"]) * 100
+            st.dataframe(rain_stats.sort_values("Rain_Participation_%", ascending=False))
+            chart = alt.Chart(rain_stats).mark_bar().encode(
+                x=alt.X("ZONE:N", sort="-y"),
+                y=alt.Y("Rain_Participation_%:Q"),
+                tooltip=["Rain_Participation_%", "Rain_Workers"]
+            )
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("No DEs worked on rain days.")
+    else:
+        st.warning("Required rain columns missing in data.")
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
