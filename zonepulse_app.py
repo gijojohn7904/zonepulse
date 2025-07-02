@@ -170,16 +170,13 @@ if uploaded_file:
     # ---------------------- RAIN DAY PARTICIPATION ANALYSIS ----------------------
     st.markdown("## 🌧️ Rain Day Participation Analysis")
 
-    # Step 1: Identify Rain Days from RAIN_FLAG = 1
     if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
         rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
         st.write(f"🗓️ Total Rain Days Detected: {len(rain_days)}")
 
-        # Step 2: DEs who worked on those rain days
         worked_on_rain_days = df[df["DT"].isin(rain_days) & (df["TOTAL LOGIN MINS"] > 0)]
         rain_workers = worked_on_rain_days[worked_on_rain_days["RAIN_FLAG"] == 1]
 
-        # Step 3: Zone-wise Rain Participation Rate
         st.markdown("### 🏅 Zone-wise Rain Day Participation Rate")
 
         if not worked_on_rain_days.empty:
@@ -188,18 +185,32 @@ if uploaded_file:
 
             rain_participation = pd.merge(total_active_on_rain, rain_participated, on="ZONE", how="left").fillna(0)
             rain_participation["Rain_Participation_%"] = (rain_participation["Rain_Workers"] / rain_participation["Total_DEs_On_Rain_Days"]) * 100
+            rain_participation["Rain_Participation_%"] = rain_participation["Rain_Participation_%"].round(2)
             rain_participation = rain_participation.sort_values("Rain_Participation_%", ascending=False)
 
+            # Display Table
             st.dataframe(rain_participation)
+
+            # Download Button
             st.download_button("📥 Download Zone Rain Participation", data=rain_participation.to_csv(index=False), file_name="zone_rain_participation.csv", mime="text/csv")
+
+            # 🔍 Add Bar Chart View
+            st.markdown("### 📊 Rain Participation % by Zone")
+
+            chart = alt.Chart(rain_participation).mark_bar().encode(
+                x=alt.X("ZONE:N", sort="-y", title="Zone"),
+                y=alt.Y("Rain_Participation_%:Q", title="Participation %"),
+                tooltip=["ZONE", "Total_DEs_On_Rain_Days", "Rain_Workers", "Rain_Participation_%"]
+            ).properties(
+                width=700,
+                height=400
+            )
+
+            st.altair_chart(chart, use_container_width=True)
         else:
             st.info("ℹ️ No DEs were logged in on rain days for participation analysis.")
     else:
         st.warning("⚠️ Required columns (RAIN_FLAG, DT, DE_ID, ZONE, TOTAL LOGIN MINS) missing from uploaded file.")
-
-
-
-
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
