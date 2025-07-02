@@ -167,9 +167,9 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-    # ---------------------- DE-WISE VIEW ----------------------
-    st.markdown("## 👤 Individual DE-wise View")
-    if "DE_ID" in df.columns:
+    # 👤 Individual DE-wise View
+st.markdown("## 👤 Individual DE-wise View")
+if "DE_ID" in df.columns:
     de_ids = df["DE_ID"].dropna().astype(str).unique()
     selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
     if selected_de != "None":
