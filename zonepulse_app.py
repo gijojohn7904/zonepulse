@@ -1,5 +1,5 @@
 import streamlit.components.v1 as components
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import numpy as np
 import altair as alt
@@ -191,34 +191,36 @@ if uploaded_file:
                 tooltip=["Rain_Participation_%", "Rain_Workers"]
             )
             st.altair_chart(chart, use_container_width=True)
+            # --- Download Buttons in One Row ---
+        colA, colB = st.columns(2)
+        rain_cols = ["DE_ID", "DE_NAME", "DE_SHIFT", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE"]
+
+        with colA:
+            if not rain_workers.empty:
+                st.download_button(
+                    "📥 Download Rain Day Workers",
+                    data=rain_workers[rain_cols].to_csv(index=False),
+                    file_name="rain_day_workers.csv",
+                    mime="text/csv"
+                )
+
+        with colB:
+            active_ids = rain_active["DE_ID"].unique()
+            all_ids = rain_df["DE_ID"].unique()
+            no_show_ids = set(all_ids) - set(active_ids)
+            no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
+            if not no_show_df.empty:
+                st.download_button(
+                    "📥 Download Rain Day No-Shows",
+                    data=no_show_df[rain_cols].to_csv(index=False),
+                    file_name="rain_day_no_shows.csv",
+                    mime="text/csv"
+                )
+
         else:
             st.info("No DEs worked on rain days.")
     else:
         st.warning("Required rain columns missing in data.")
-
-# ✅ Download DEs who worked on rain days
-if not rain_workers.empty:
-    st.download_button(
-        "📥 Download DEs who Worked on Rain Days",
-        data=rain_workers.to_csv(index=False),
-        file_name="rain_day_workers.csv",
-        mime="text/csv"
-    )
-
-# ✅ Download DEs who did NOT work on rain days (No-Shows)
-if not rain_active.empty:
-    active_ids = rain_active["DE_ID"].unique()
-    all_ids = df[df["DT"].isin(rain_days)]["DE_ID"].unique()
-    no_show_ids = set(all_ids) - set(active_ids)
-    no_show_df = df[df["DE_ID"].isin(no_show_ids) & df["DT"].isin(rain_days)]
-
-    if not no_show_df.empty:
-        st.download_button(
-            "📥 Download Rain Day No-Show DEs",
-            data=no_show_df.to_csv(index=False),
-            file_name="rain_day_no_shows.csv",
-            mime="text/csv"
-        )
 
 
     # ---------------------- DE-WISE VIEW ----------------------
