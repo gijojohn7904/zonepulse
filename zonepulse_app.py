@@ -167,6 +167,40 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
+st.markdown("## 🌧️ Rain Day Participation Analysis")
+
+if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
+    # 1. Find all unique rain dates
+    rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+    total_rain_days = len(rain_dates)
+
+    # 2. For each DE, count rain days worked
+    rain_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
+    rain_participation = rain_df.groupby("DE_ID").agg(
+        DE_NAME=("DE_NAME", "first"),
+        Rain_Days_Worked=("DT", "nunique")
+    ).reset_index()
+
+    # 3. Join back to all DEs so non-workers are zero
+    all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
+    rain_participation = all_des.merge(rain_participation, on=["DE_ID", "DE_NAME"], how="left")
+    rain_participation["Rain_Days_Worked"] = rain_participation["Rain_Days_Worked"].fillna(0).astype(int)
+    rain_participation["Total_Rain_Days"] = total_rain_days
+    rain_participation["Participation_%"] = (
+        (rain_participation["Rain_Days_Worked"] / total_rain_days) * 100
+    ).round(2) if total_rain_days > 0 else 0
+
+    st.dataframe(rain_participation.sort_values("Participation_%", ascending=False))
+    st.download_button(
+        "🌧️ Download Rain Day Participation",
+        data=rain_participation.to_csv(index=False),
+        file_name="rain_day_participation.csv",
+        mime="text/csv"
+    )
+else:
+    st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
+
+
     # 👤 Individual DE-wise View
 st.markdown("## 👤 Individual DE-wise View")
 if "DE_ID" in df.columns:
