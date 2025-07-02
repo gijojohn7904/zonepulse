@@ -170,18 +170,25 @@ if uploaded_file:
 st.markdown("## 🌧️ Rain Day Participation Analysis")
 
 if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
-    # 1. Find all unique rain dates
     rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
     total_rain_days = len(rain_dates)
 
-    # 2. For each DE, count rain days worked
-    rain_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
+    # The core filter: must log in AND attempt at least 1 order (delivered or rejected)
+    rain_df = df[
+        (df["DT"].isin(rain_dates)) &
+        (df["RAIN_FLAG"] == 1) &
+        (df["TOTAL LOGIN MINS"] > 0) &
+        (
+            (df["TOTAL ORDERS"] > 0) |
+            (df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
+        )
+    ]
+
     rain_participation = rain_df.groupby("DE_ID").agg(
         DE_NAME=("DE_NAME", "first"),
         Rain_Days_Worked=("DT", "nunique")
     ).reset_index()
 
-    # 3. Join back to all DEs so non-workers are zero
     all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
     rain_participation = all_des.merge(rain_participation, on=["DE_ID", "DE_NAME"], how="left")
     rain_participation["Rain_Days_Worked"] = rain_participation["Rain_Days_Worked"].fillna(0).astype(int)
