@@ -2,7 +2,7 @@ import streamlit.components.v1 as components
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
+import altair as alt 
 
 # ---------------------- PASSWORD GATE ----------------------
 def check_password():
