@@ -227,8 +227,8 @@ if uploaded_file:
             )
         else:
             st.info("No DEs worked on rain days.")
-    else:
-        st.warning("Required rain columns missing in data.")
+        else:
+            st.warning("Required rain columns missing in data.")
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
