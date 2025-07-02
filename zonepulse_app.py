@@ -205,7 +205,7 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
         no_show_df = rain_df[rain_df["DE_ID"].isin(no_show_ids)]
         no_show_data = no_show_df[rain_cols] if not no_show_df.empty else pd.DataFrame(columns=rain_cols)
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([1, 1])
 
         with col1:
             st.download_button(
@@ -215,8 +215,8 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
                 mime="text/csv",
                 key="rain_workers_dl",
                 help="Download list of DEs who worked on rain days",
-                use_container_width=True,
-                type="primary"
+                type="primary",
+                use_container_width=True
             )
 
         with col2:
@@ -227,14 +227,15 @@ if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL 
                 mime="text/csv",
                 key="rain_noshows_dl",
                 help="Download list of DEs who did not login on rain days",
-                use_container_width=True,
-                type="secondary"
+                type="secondary",
+                use_container_width=True
             )
 
     else:
         st.info("No DEs worked on rain days.")
 else:
     st.warning("Required rain columns missing in data.")
+
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
