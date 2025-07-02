@@ -147,7 +147,7 @@ if uploaded_file:
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
-    st.markdown("## ⚠️ Potential Churn Risk DEs (Login > 3hr, Orders < 2)")
+    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
 
