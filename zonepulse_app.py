@@ -167,33 +167,38 @@ if uploaded_file:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
 
-st.markdown("## 🌧️ Rain Day Participation vs Skippers")
+    # ---------------------- RAIN DAY PARTICIPATION ANALYSIS ----------------------
+st.markdown("## 🌧️ Rain Day Participation Analysis")
 
-if "RAIN_FLAG" in df.columns and "DT" in df.columns:
-    rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-    worked_on_rain_days = df[df["DT"].isin(rain_dates)]
+# Step 1: Identify Rain Days from RAIN_FLAG = 1
+if all(col in df.columns for col in ["RAIN_FLAG", "DT", "DE_ID", "ZONE", "TOTAL LOGIN MINS"]):
+    rain_days = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+    st.write(f"🗓️ Total Rain Days Detected: {len(rain_days)}")
+
+    # Step 2: DEs who worked on those rain days
+    worked_on_rain_days = df[df["DT"].isin(rain_days) & (df["TOTAL LOGIN MINS"] > 0)]
     rain_workers = worked_on_rain_days[worked_on_rain_days["RAIN_FLAG"] == 1]
-    rain_skippers = worked_on_rain_days[worked_on_rain_days["RAIN_FLAG"] == 0]
 
-    st.markdown(f"Total Unique Rain Days: **{len(rain_dates)}**")
+    # Step 3: Zone-wise Rain Participation Rate
+    st.markdown("### 🏅 Zone-wise Rain Day Participation Rate")
 
-    # Rain Workers Summary
-    st.markdown("### ✅ DEs Who Delivered in Rain")
-    if not rain_workers.empty:
-        st.dataframe(rain_workers[["DE_ID", "DE_NAME", "ZONE", "CITY", "DT", "TOTAL ORDERS", "TOTAL LOGIN MINS"]])
-        st.download_button("📥 Download Rain Workers", data=rain_workers.to_csv(index=False), file_name="rain_workers.csv", mime="text/csv")
+    if not worked_on_rain_days.empty:
+        total_active_on_rain = worked_on_rain_days.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Total_DEs_On_Rain_Days")
+        rain_participated = rain_workers.groupby("ZONE")["DE_ID"].nunique().reset_index(name="Rain_Workers")
+
+        rain_participation = pd.merge(total_active_on_rain, rain_participated, on="ZONE", how="left").fillna(0)
+        rain_participation["Rain_Participation_%"] = (rain_participation["Rain_Workers"] / rain_participation["Total_DEs_On_Rain_Days"]) * 100
+        rain_participation = rain_participation.sort_values("Rain_Participation_%", ascending=False)
+
+        st.dataframe(rain_participation)
+        st.download_button("📥 Download Zone Rain Participation", data=rain_participation.to_csv(index=False), file_name="zone_rain_participation.csv", mime="text/csv")
     else:
-        st.info("No DEs delivered during rain days.")
-
-    # Rain Skippers Summary
-    st.markdown("### ⚠️ DEs Logged In But Didn’t Deliver in Rain")
-    if not rain_skippers.empty:
-        st.dataframe(rain_skippers[["DE_ID", "DE_NAME", "ZONE", "CITY", "DT", "TOTAL ORDERS", "TOTAL LOGIN MINS"]])
-        st.download_button("📥 Download Rain Skippers", data=rain_skippers.to_csv(index=False), file_name="rain_skippers.csv", mime="text/csv")
-    else:
-        st.success("No DEs skipped rain day duties.")
+        st.info("ℹ️ No DEs were logged in on rain days for participation analysis.")
 else:
-    st.warning("RAIN_FLAG or DT column missing. Please upload updated master file.")
+    st.warning("⚠️ Required columns (RAIN_FLAG, DT, DE_ID, ZONE, TOTAL LOGIN MINS) missing from uploaded file.")
+
+
+
 
     # ---------------------- DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
