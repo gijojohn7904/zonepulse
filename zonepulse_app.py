@@ -40,7 +40,7 @@ st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layo
 st.markdown("""
 <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
 <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
-This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
+This dashboard is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
 Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
 Please handle this information responsibly, in accordance with company data policies.
 </div>
@@ -49,11 +49,11 @@ Please handle this information responsibly, in accordance with company data poli
 # Banner
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
-Monitor DE behavior, optimize login-to-order ratios, and ensure supply-demand harmony across every zone.
+Track DE login vs orders. Fix idle time, prevent attrition, and balance demand-supply across zones.
 """)
 
 # File uploader
-uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
+uploaded_file = st.file_uploader("🔕 Upload your DE Order vs Login File", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -66,7 +66,6 @@ if uploaded_file:
 
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
-    # 🔄 Two filters per row
     col1, col2 = st.columns(2)
     with col1:
         vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
@@ -99,271 +98,27 @@ if uploaded_file:
             selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
             if len(selected_dates) == 2:
                 df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-    ### 1️⃣ ZONE-LEVEL HOURLY REPORT ###
-    hourly_data = []
-    for hr in range(24):
-        fd_col = f"FD_{str(hr).zfill(2)}"
-        lh_col = f"LH_{str(hr).zfill(2)}"
+    # Add Rain DE classification
+    st.markdown("## 🌧️ Rain DE Classification")
+    df["RAIN_DE_TYPE"] = df["RAIN_FLAG"].apply(lambda x: "Rain DE" if x == 1 else "Non-Rain DE")
+    rain_de_summary = df.groupby(["DE_ID", "DE_NAME", "RAIN_DE_TYPE"]).agg(
+        Days_Worked=("DT", "nunique"),
+        Total_Login_Min=("TOTAL LOGIN MINS", "sum"),
+        Total_Orders=("TOTAL ORDERS", "sum")
+    ).reset_index()
+    rain_de_summary["Login_Hours"] = (rain_de_summary["Total_Login_Min"] / 60).round(2)
+    st.dataframe(rain_de_summary.sort_values("Days_Worked", ascending=False))
+    st.download_button("📅 Download Rain DE Summary", data=rain_de_summary.to_csv(index=False), file_name="rain_de_summary.csv", mime="text/csv")
 
-        if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 10]
-            if hour_df.empty:
-                continue
-
-            zone_group = hour_df.groupby("ZONE").agg(
-                Total_Orders=(fd_col, 'sum'),
-                Avg_Orders=(fd_col, 'mean'),
-                Avg_Login_Mins=(lh_col, 'mean'),
-                Active_DEs=(lh_col, lambda x: (x > 10).sum())
-            ).reset_index()
-
-            zone_group["Hour"] = hr
-            zone_group["Login_Utilization_%"] = zone_group.apply(
-                lambda row: min(100, (row["Avg_Orders"] * 25 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0,
-                axis=1)
-
-            if vertical == "Instamart":
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
-                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
-                    else "✅ Balanced",
-                    axis=1
-                )
-            else:
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
-                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
-                    else "✅ Balanced",
-                    axis=1
-                )
-
-            hourly_data.append(zone_group)
-
-    if hourly_data:
-        zone_hour_df = pd.concat(hourly_data)
-        st.markdown("## 📊 Zone-Level Hourly Report")
-        st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
-
-    ### 2️⃣ ATTRITION RISK DEs ###
-    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
-    churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
-    churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
-
-    churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
-    if "REJECTED_ORDERS" in df.columns:
-        churn_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in df.columns:
-        churn_cols.append("DAILY_EARNINGS")
-
-    if churn_df.empty:
-        st.info("✅ No churn risk DEs found for the selected filters.")
-    else:
-        st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
-        st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False), file_name="churn_risk_DEs.csv", mime="text/csv")
-
-    ### 3️⃣ INDIVIDUAL DE-WISE VIEW (with Rain Participation %) ###
-    st.markdown("## 👤 Individual DE-wise View")
-    rain_participation_dict = {}
-    rain_dates = set()
-    if "RAIN_FLAG" in df.columns:
-        rain_dates = set(df[df["RAIN_FLAG"] == 1]["DT"].unique())
-        total_rain_days = len(rain_dates)
-        # Calculate per DE rain participation %
-        de_rain = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
-        de_rain_count = de_rain.groupby("DE_ID")["DT"].nunique().to_dict()
-        for de_id in df["DE_ID"].unique():
-            rain_participation_dict[de_id] = round((de_rain_count.get(de_id, 0) / total_rain_days) * 100, 2) if total_rain_days else 0
-
-    if "DE_ID" in df.columns:
-        de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
-        if selected_de != "None":
-            de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-            st.markdown(f"### DE: {selected_de} – {de_data['DE_NAME'].iloc[0]}")
-            st.markdown(f"**📍 Zone:** {de_data['ZONE'].iloc[0]}  |  🏣️ **City:** {de_data['CITY'].iloc[0]}")
-
-            total_days = de_data.shape[0]
-            total_login = de_data["TOTAL LOGIN MINS"].sum()
-            total_orders = de_data["TOTAL ORDERS"].sum()
-            avg_orders_per_hour = round(total_orders / (total_login / 60), 2) if total_login > 0 else 0
-            idle_ratio = round(total_login / (total_orders * 25), 2) if total_orders > 0 else np.nan
-            total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
-            total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
-            weekly_ded = de_data["WEEKLY_DEDUCTIONS"].fillna(0).sum() if "WEEKLY_DEDUCTIONS" in de_data.columns else 0
-            daily_ded = de_data["OTHER_DAILY_DEDUCTIONS"].fillna(0).sum() if "OTHER_DAILY_DEDUCTIONS" in de_data.columns else 0
-            total_deductions = weekly_ded + daily_ded
-            rain_part = rain_participation_dict.get(de_data["DE_ID"].iloc[0], 0)
-
-            col1, col2, col3, col4, col5 = st.columns(5)
-            col1.metric("🔕️ Active Days", total_days)
-            col2.metric("⏱️ Total Login Hrs", round(total_login / 60, 2))
-            col3.metric("🔵️ Total Orders", int(total_orders))
-            col4.metric("⚖️ Idle Ratio", round(idle_ratio, 2) if not np.isnan(idle_ratio) else "∞")
-            col5.metric("🌧️ Rain Participation %", f"{rain_part}%")
-
-            col6, col7, col8 = st.columns(3)
-            col6.metric("⛔ Rejected Orders", int(total_rejected))
-            col7.metric("💸 Total Earnings", f"₹{round(total_earnings, 2)}")
-            col8.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
-
-            st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
-            de_data["WEEK"] = de_data["WEEK"].astype(str)
-            weekly_df = de_data.groupby("WEEK").agg(
-                Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
-                Orders=("TOTAL ORDERS", "sum"),
-                Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
-                Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
-            ).reset_index()
-
-            metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
-            colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
-            chart_cols = st.columns(2)
-            for i, metric in enumerate(metrics):
-                col = chart_cols[i % 2]
-                chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
-                    x=alt.X("WEEK", sort=None),
-                    y=alt.Y(metric, type="quantitative"),
-                    tooltip=["WEEK", metric]
-                ).properties(title=f"📊 {metric} by Week")
-                col.altair_chart(chart, use_container_width=True)
-
-            st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
-            chart_df = de_data.sort_values("DT")
-            base = alt.Chart(chart_df).encode(x="DT:T")
-            login_line = base.mark_line(color="#1f77b4").encode(
-                y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
-                tooltip=["DT", "TOTAL LOGIN MINS"]
-            )
-            order_line = base.mark_line(color="#ff7f0e").encode(
-                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
-                tooltip=["DT", "TOTAL ORDERS"]
-            )
-            st.altair_chart(
-                alt.layer(login_line, order_line).resolve_scale(y="independent"),
-                use_container_width=True
-            )
-
-            st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
-            hourly_records = []
-            for _, row in de_data.iterrows():
-                date = row["DT"]
-                for hr in range(24):
-                    lh_col = f"LH_{str(hr).zfill(2)}"
-                    fd_col = f"FD_{str(hr).zfill(2)}"
-                    if lh_col in row and fd_col in row:
-                        login_min = row[lh_col]
-                        orders = row[fd_col]
-                        if login_min > 0 or orders > 0:
-                            hourly_records.append({
-                                "Date": date,
-                                "Hour": f"{str(hr).zfill(2)}:00",
-                                "Login Minutes": login_min,
-                                "Orders": orders
-                            })
-            if hourly_records:
-                hourly_df = pd.DataFrame(hourly_records)
-                st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
-                st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False), file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
-            else:
-                st.info("ℹ️ No hourly data found for this DE.")
-
-    ### 4️⃣ RAIN DAY PARTICIPATION ANALYSIS (NEW LOGIC) ###
-    st.markdown("## 🌧️ Rain Day Participation Analysis")
-    if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
-        rain_dates = set(df[df["RAIN_FLAG"] == 1]["DT"].unique())
-        total_rain_days = len(rain_dates)
-
-        # 1. Rain DEs: RAIN_FLAG==1 and LOGIN>0 on rain day
-        rain_de_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
-        rain_de_part = rain_de_df.groupby("DE_ID").agg(
-            DE_NAME=("DE_NAME", "first"),
-            Rain_Days_Worked=("DT", "nunique")
-        ).reset_index()
-        rain_de_part["Rain_DE_Type"] = "Rain DE"
-
-        # 2. Non-Rain DEs: DT in rain_dates, LOGIN>0, RAIN_FLAG==0
-        non_rain_de_df = df[(df["DT"].isin(rain_dates)) & (df["TOTAL LOGIN MINS"] > 0) & (df["RAIN_FLAG"] == 0)]
-        non_rain_de_part = non_rain_de_df.groupby("DE_ID").agg(
-            DE_NAME=("DE_NAME", "first"),
-            Rain_Days_Worked=("DT", "nunique")
-        ).reset_index()
-        non_rain_de_part["Rain_DE_Type"] = "Non-Rain DE"
-
-        # 3. No-Show DEs: Never logged in on rain day
-        all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
-        de_logged_in_on_rain = set(pd.concat([rain_de_part["DE_ID"], non_rain_de_part["DE_ID"]]))
-        no_show_de = all_des[~all_des["DE_ID"].isin(de_logged_in_on_rain)].copy()
-        no_show_de["Rain_Days_Worked"] = 0
-        no_show_de["Rain_DE_Type"] = "No-Show DE"
-
-        # Combine all
-        all_participation = pd.concat([rain_de_part, non_rain_de_part, no_show_de], ignore_index=True)
-        all_participation["Total_Rain_Days"] = total_rain_days
-        all_participation["Participation_%"] = (
-            (all_participation["Rain_Days_Worked"] / total_rain_days) * 100
-        ).round(2) if total_rain_days > 0 else 0
-
-        filter_type = st.selectbox(
-            "Filter by Rain Participation",
-            ["Rain DE", "Non-Rain DE", "No-Show DE", "All"]
-        )
-        if filter_type != "All":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == filter_type]
-        else:
-            show_df = all_participation
-
-        st.dataframe(show_df.sort_values("Participation_%", ascending=False))
-        st.download_button(
-            "🌧️ Download Rain Day Participation",
-            data=show_df.to_csv(index=False),
-            file_name="rain_day_participation.csv",
-            mime="text/csv"
-        )
-    else:
-        st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
-
-    ### 5️⃣ NO-SHOW DEs – PREVIOUSLY ACTIVE ###
-    st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
-    col_prev, col_curr = st.columns(2)
-    with col_prev:
-        prev_dates = st.date_input("🗕️ Select Previous Period", [])
-    with col_curr:
-        curr_dates = st.date_input("🗕️ Select Current Period", [])
-
-    if len(prev_dates) == 2 and len(curr_dates) == 2:
-        prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
-        curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
-
-        prev_logged_in = prev_df[prev_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
-        curr_logged_in = curr_df[curr_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
-
-        no_show_ids = set(prev_logged_in) - set(curr_logged_in)
-        no_show_df = prev_df[prev_df["DE_ID"].isin(no_show_ids)]
-
-        if not no_show_df.empty:
-            summary_df = no_show_df.groupby("DE_ID").agg(
-                DE_NAME=("DE_NAME", "first"),
-                ZONE=("ZONE", "first"),
-                CITY=("CITY", "first"),
-                Last_Seen_DT=("DT", "max"),
-                Total_Login_Mins=("TOTAL LOGIN MINS", "sum"),
-                Total_Orders=("TOTAL ORDERS", "sum"),
-                Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in no_show_df.columns else ("TOTAL ORDERS", "sum")
-            ).reset_index()
-
-            summary_df["Total_Login_Hrs"] = (summary_df["Total_Login_Mins"] / 60).round(2)
-            summary_df["Earnings"] = summary_df["Earnings"].round(2)
-
-            display_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "Last_Seen_DT", "Total_Login_Hrs", "Total_Orders", "Earnings"]
-            st.dataframe(summary_df[display_cols].sort_values(by="Last_Seen_DT", ascending=False))
-            st.download_button("📅 Download No-Show DEs", data=summary_df[display_cols].to_csv(index=False), file_name="no_show_des.csv", mime="text/csv")
-        else:
-            st.success("🎉 No No-Show DEs found. Great retention!")
-    else:
-        st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
+    # Filtered DE-Level Data
+    st.markdown("## 📅 Download Filtered DE-Level Data")
+    filter_columns = [col for col in df.columns if col.startswith("FD_") or col.startswith("LH_") or col in ["DE_ID", "DE_NAME", "ZONE", "CITY", "SHIFT", "WEEK", "DT", "RAIN_FLAG", "RAIN_DE_TYPE"]]
+    st.dataframe(df[filter_columns].sort_values(by=["DT", "ZONE", "DE_ID"]))
+    st.download_button("📅 Download Current Filtered Data", data=df[filter_columns].to_csv(index=False), file_name="filtered_de_data.csv", mime="text/csv")
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
