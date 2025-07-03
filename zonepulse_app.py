@@ -160,7 +160,7 @@ if uploaded_file:
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
-    # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
+
 # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
 st.markdown("## 👤 Individual DE-wise View")
 if "DE_ID" in df.columns:
@@ -178,7 +178,7 @@ if "DE_ID" in df.columns:
         total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
         total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
-        # Centered display with modern style
+        # Centered DE header
         st.markdown(f"""
         <div style="text-align:center;">
             <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
@@ -197,9 +197,21 @@ if "DE_ID" in df.columns:
         </div>
         """, unsafe_allow_html=True)
 
-        # --- Weekly Metrics Charts ---
+        # --- BIG & BOLD Week-on-Week Performance header ---
         st.markdown(
-            "<div style='text-align:center; font-size:1.2em; font-weight:bold; margin-top:2em;'>📈 Week-on-Week Performance</div>",
+            """
+            <div style='
+                text-align:center; 
+                font-size:2em; 
+                font-weight:800; 
+                margin-top:36px; 
+                margin-bottom:28px; 
+                letter-spacing:0.5px;
+                color:#1a1a1a;
+            '>
+            📈 Week-on-Week Performance
+            </div>
+            """,
             unsafe_allow_html=True
         )
         de_data["WEEK"] = de_data["WEEK"].astype(str)
