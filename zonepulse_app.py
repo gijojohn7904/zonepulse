@@ -252,16 +252,13 @@ if uploaded_file:
                 st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False),
                                    file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
             else:
-                st.info("ℹ️ No hourly data found for this DE.")
-
-    st.markdown("## 🌧️ Rain Day Participation Analysis")
+                st.info("ℹ️ No hourly data found for this DE.")st.markdown("## 🌧️ Rain Day Participation Analysis")
 
 if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns and "DT" in df.columns:
-    # Use the already-filtered df (date filters have already applied above)
-
+    # The df here is already filtered by date, city, zone, vertical, etc.
     rain_filter = st.selectbox("Filter by Rain Participation", ["Rain DE", "Non-Rain DE", "All DEs"])
 
-    # Find DEs who worked rain days in THIS date range
+    # Find DEs who worked at least one rain day IN THIS DATE RANGE
     rain_de_ids = set(df[df["RAIN_FLAG"] == 1]["DE_ID"].unique())
     all_de_ids = set(df["DE_ID"].unique())
     non_rain_de_ids = all_de_ids - rain_de_ids
@@ -276,12 +273,12 @@ if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns and "DT" in df.columns:
         rain_part = df[(df["DE_ID"].isin(rain_de_ids)) & (df["RAIN_FLAG"] == 1)]
         nonrain_part = df[(df["DE_ID"].isin(non_rain_de_ids)) & (df["RAIN_FLAG"] == 0)]
         filtered = pd.concat([rain_part, nonrain_part])
-        # Participation_Type will be assigned below
+        # We'll set Participation_Type after grouping
 
-    # Group by DE and show summary only for those filtered days
+    # Group by DE and show summary for only those filtered days
     group_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE"]
     agg_dict = {
-        "DT": "nunique",
+        "DT": "nunique",               # Number of days worked in this group
         "TOTAL LOGIN MINS": "sum",
         "TOTAL ORDERS": "sum",
     }
@@ -297,13 +294,16 @@ if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns and "DT" in df.columns:
         "TOTAL ORDERS": "Total_Orders"
     })
 
-    # Assign participation type
+    # Assign Participation_Type
     if rain_filter == "All DEs":
         summary["Participation_Type"] = summary["DE_ID"].apply(lambda x: "Rain DE" if x in rain_de_ids else "Non-Rain DE")
     else:
         summary["Participation_Type"] = participation_type
 
-    display_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "Participation_Type", "Days_Worked", "Total_Login_Mins", "Total_Orders"]
+    display_cols = [
+        "DE_ID", "DE_NAME", "CITY", "ZONE", "Participation_Type",
+        "Days_Worked", "Total_Login_Mins", "Total_Orders"
+    ]
     if "REJECTED_ORDERS" in summary.columns:
         display_cols.append("REJECTED_ORDERS")
     if "DAILY_EARNINGS" in summary.columns:
