@@ -144,6 +144,39 @@ if uploaded_file:
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
+        # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
+    if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
+        st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+        selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
+        # Filter for only the currently selected zone (ignore 'All')
+        zone_filtered = df if selected_zone == "All" else df[df["ZONE"] == selected_zone]
+        # Count of DEs who logged in (login mins > 0), for each date
+        date_login_counts = (
+            zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
+            .groupby("DT")["DE_ID"].nunique()
+            .reset_index()
+            .rename(columns={"DE_ID": "Login Count"})
+        )
+        if not date_login_counts.empty:
+            bar = alt.Chart(date_login_counts).mark_bar().encode(
+                x=alt.X("DT:T", title="Date"),
+                y=alt.Y("Login Count", title="No. of DEs Logged In"),
+                tooltip=["DT", "Login Count"]
+            ).properties(
+                title=f"Login Count per Day – {selected_zone_label}"
+            )
+            st.altair_chart(bar, use_container_width=True)
+            st.dataframe(date_login_counts)
+            st.download_button(
+                "📥 Download Login Count (CSV)",
+                data=date_login_counts.to_csv(index=False),
+                file_name=f"{selected_zone_label}_datewise_login_count.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No DEs logged in for the selected zone and date range.")
+
+
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
