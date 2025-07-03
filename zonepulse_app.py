@@ -176,6 +176,20 @@ if uploaded_file:
         else:
             st.info("No DEs logged in for the selected zone and date range.")
 
+    # ---------------------- DATE-WISE LOGIN LINE GRAPH FOR ZONE ----------------------
+    if not date_login_counts.empty:
+        st.markdown("### 📉 Daily Login Trend (Line Graph)")
+        line = alt.Chart(date_login_counts).mark_line(point=True).encode(
+            x=alt.X("DT:T", title="Date"),
+            y=alt.Y("Login Count", title="No. of DEs Logged In"),
+            tooltip=["DT", "Login Count"]
+        ).properties(
+            width=700,
+            height=350,
+            title=f"Login Trend per Day – {selected_zone_label}"
+        )
+        st.altair_chart(line, use_container_width=True)
+
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
