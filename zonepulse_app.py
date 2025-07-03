@@ -196,9 +196,12 @@ if "DE_ID" in df.columns:
         </div>
         """, unsafe_allow_html=True)
 
-        # --- Weekly Metrics Charts ---
-        st.markdown("### 📈 Week-on-Week Performance")
-        de_data["WEEK"] = de_data["WEEK"].astype(str)
+        # --- Weekly Metrics Charts ---st.markdown(
+    "<div style='text-align:center; font-size:1.2em; font-weight:bold; margin-top:2em;'>📈 Week-on-Week Performance</div>",
+    unsafe_allow_html=True
+)
+de_data["WEEK"] = de_data["WEEK"].astype(str)
+chart_cols = st.columns(2)
         weekly_df = de_data.groupby("WEEK").agg(
             Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
             Orders=("TOTAL ORDERS", "sum"),
