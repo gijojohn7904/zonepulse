@@ -158,41 +158,43 @@ if uploaded_file:
     else:
         st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
-                           file_name="churn_risk_DEs.csv", mime="text/csv")# ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
+                           file_name="churn_risk_DEs.csv", mime="text/csv")
+
+    # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
 st.markdown("## 👤 Individual DE-wise View")
 if "DE_ID" in df.columns:
     de_ids = df["DE_ID"].dropna().astype(str).unique()
     selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
     if selected_de != "None":
-        de_data = df[df["DE_ID"].astype(str) == selected_de].copy()de_name = de_data['DE_NAME'].iloc[0]
-de_zone = de_data['ZONE'].iloc[0]
-de_city = de_data['CITY'].iloc[0]
+        de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
+        de_name = de_data['DE_NAME'].iloc[0]
+        de_zone = de_data['ZONE'].iloc[0]
+        de_city = de_data['CITY'].iloc[0]
 
-total_days = de_data.shape[0]
-total_login = de_data["TOTAL LOGIN MINS"].sum()
-total_orders = de_data["TOTAL ORDERS"].sum()
-total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
-total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+        total_days = de_data.shape[0]
+        total_login = de_data["TOTAL LOGIN MINS"].sum()
+        total_orders = de_data["TOTAL ORDERS"].sum()
+        total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
+        total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
-# Centered display with modern style
-st.markdown(f"""
-<div style="text-align:center;">
-    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
-        DE: {selected_de} – {de_name}
-    </div>
-    <div style="margin-bottom: 0.7em;">
-        📍 Zone: <b>{de_zone}</b> &nbsp; | &nbsp; 🏣️ City: <b>{de_city}</b>
-    </div>
-    <div style="font-size:1.05em; background:#f8f9fa; border-radius:10px; display:inline-block; padding:10px 18px; box-shadow:0 2px 8px #eee;">
-        🔕️ <b>Active Days:</b> {total_days} &nbsp; | &nbsp; 
-        ⏱️ <b>Total Login Hrs:</b> {round(total_login/60,2)} &nbsp; | &nbsp; 
-        🔵️ <b>Total Orders:</b> {int(total_orders)} &nbsp; | &nbsp; 
-        ⛔ <b>Rejected Orders:</b> {int(total_rejected)} &nbsp; | &nbsp; 
-        💸 <b>Total Earnings:</b> ₹{round(total_earnings,2)}
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
+        # Centered display with modern style
+        st.markdown(f"""
+        <div style="text-align:center;">
+            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
+                DE: {selected_de} – {de_name}
+            </div>
+            <div style="margin-bottom: 0.7em;">
+                📍 Zone: <b>{de_zone}</b> &nbsp; | &nbsp; 🏣️ City: <b>{de_city}</b>
+            </div>
+            <div style="font-size:1.05em; background:#f8f9fa; border-radius:10px; display:inline-block; padding:10px 18px; box-shadow:0 2px 8px #eee;">
+                🔕️ <b>Active Days:</b> {total_days} &nbsp; | &nbsp; 
+                ⏱️ <b>Total Login Hrs:</b> {round(total_login/60,2)} &nbsp; | &nbsp; 
+                🔵️ <b>Total Orders:</b> {int(total_orders)} &nbsp; | &nbsp; 
+                ⛔ <b>Rejected Orders:</b> {int(total_rejected)} &nbsp; | &nbsp; 
+                💸 <b>Total Earnings:</b> ₹{round(total_earnings,2)}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # --- Weekly Metrics Charts ---
         st.markdown("### 📈 Week-on-Week Performance")
@@ -257,6 +259,7 @@ st.markdown(f"""
                                file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
         else:
             st.info("ℹ️ No hourly data found for this DE.")
+
 
     # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
