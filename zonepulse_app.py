@@ -73,27 +73,25 @@ if uploaded_file:
     with col2:
         if "CITY" in df.columns:
             cities = sorted(df["CITY"].dropna().unique())
-            city_options = ["All"] + cities
+            city_options = ["All"] + list(cities)
             selected_city = st.selectbox("🏩 Choose City", city_options)
             if selected_city != "All":
                 df = df[df["CITY"] == selected_city]
         else:
             st.error("❌ 'CITY' column missing.")
             st.stop()
-    selected_city_label = selected_city if selected_city != "All" else "All Cities"
 
     col3, col4 = st.columns(2)
     with col3:
         if "ZONE" in df.columns:
             zones = sorted(df["ZONE"].dropna().unique())
-            zone_options = ["All"] + zones
+            zone_options = ["All"] + list(zones)
             selected_zone = st.selectbox("📍 Choose Zone", zone_options)
             if selected_zone != "All":
                 df = df[df["ZONE"] == selected_zone]
         else:
             st.error("❌ 'ZONE' column missing.")
             st.stop()
-    selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
 
     with col4:
         if "DT" in df.columns:
@@ -111,6 +109,7 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+    st.markdown("## 📊 Zone-Level Hourly Report")
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -146,14 +145,15 @@ if uploaded_file:
             hourly_data.append(zone_group)
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
-        st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+    else:
+        st.info("No hourly data available for the selected filters.")
 
     # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
     if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
         st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+        selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
         zone_filtered = df if selected_zone == "All" else df[df["ZONE"] == selected_zone]
-        # Count of DEs who logged in (login mins > 0), for each date
         date_login_counts = (
             zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
             .groupby("DT")["DE_ID"].nunique()
@@ -170,7 +170,7 @@ if uploaded_file:
             )
             st.altair_chart(bar, use_container_width=True)
 
-            # Table: all DEs who logged in (login mins > 0) by date, with orders/rejections/earnings
+            # DE login detail table
             de_cols = ["DT", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
             if "REJECTED_ORDERS" in df.columns:
                 de_cols.append("REJECTED_ORDERS")
@@ -188,7 +188,7 @@ if uploaded_file:
             st.download_button(
                 "📥 Download DE Login Detail (CSV)",
                 data=de_login_data.to_csv(index=False),
-                file_name=f"{selected_city_label}_{selected_zone_label}_datewise_login_DEs.csv",
+                file_name=f"{selected_zone_label}_datewise_login_DEs.csv",
                 mime="text/csv"
             )
         else:
