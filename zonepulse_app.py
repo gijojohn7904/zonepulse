@@ -161,6 +161,7 @@ if uploaded_file:
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
+# ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
 st.markdown("## 👤 Individual DE-wise View")
 if "DE_ID" in df.columns:
     de_ids = df["DE_ID"].dropna().astype(str).unique()
@@ -196,12 +197,12 @@ if "DE_ID" in df.columns:
         </div>
         """, unsafe_allow_html=True)
 
-        # --- Weekly Metrics Charts ---st.markdown(
-    "<div style='text-align:center; font-size:1.2em; font-weight:bold; margin-top:2em;'>📈 Week-on-Week Performance</div>",
-    unsafe_allow_html=True
-)
-de_data["WEEK"] = de_data["WEEK"].astype(str)
-chart_cols = st.columns(2)
+        # --- Weekly Metrics Charts ---
+        st.markdown(
+            "<div style='text-align:center; font-size:1.2em; font-weight:bold; margin-top:2em;'>📈 Week-on-Week Performance</div>",
+            unsafe_allow_html=True
+        )
+        de_data["WEEK"] = de_data["WEEK"].astype(str)
         weekly_df = de_data.groupby("WEEK").agg(
             Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
             Orders=("TOTAL ORDERS", "sum"),
