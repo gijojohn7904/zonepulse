@@ -144,8 +144,10 @@ if uploaded_file:
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
+    
+
         # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
-    if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
+if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
         st.markdown("## 📅 Date-wise Login Count for Selected Zone")
         selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
         # Filter for only the currently selected zone (ignore 'All')
