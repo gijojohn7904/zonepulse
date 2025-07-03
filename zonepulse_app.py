@@ -35,7 +35,7 @@ def check_password():
 check_password()  # 🔒 Enforce password before running further
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
-st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitore", layout="wide")
+st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
@@ -143,41 +143,6 @@ if uploaded_file:
         zone_hour_df = pd.concat(hourly_data)
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
-
-    
-
-        # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
-if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
-        st.markdown("## 📅 Date-wise Login Count for Selected Zone")
-        selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
-        # Filter for only the currently selected zone (ignore 'All')
-        zone_filtered = df if selected_zone == "All" else df[df["ZONE"] == selected_zone]
-        # Count of DEs who logged in (login mins > 0), for each date
-        date_login_counts = (
-            zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
-            .groupby("DT")["DE_ID"].nunique()
-            .reset_index()
-            .rename(columns={"DE_ID": "Login Count"})
-        )
-        if not date_login_counts.empty:
-            bar = alt.Chart(date_login_counts).mark_bar().encode(
-                x=alt.X("DT:T", title="Date"),
-                y=alt.Y("Login Count", title="No. of DEs Logged In"),
-                tooltip=["DT", "Login Count"]
-            ).properties(
-                title=f"Login Count per Day – {selected_zone_label}"
-            )
-            st.altair_chart(bar, use_container_width=True)
-            st.dataframe(date_login_counts)
-            st.download_button(
-                "📥 Download Login Count (CSV)",
-                data=date_login_counts.to_csv(index=False),
-                file_name=f"{selected_zone_label}_datewise_login_count.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("No DEs logged in for the selected zone and date range.")
-
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
@@ -334,6 +299,4 @@ if "DE_ID" in df.columns:
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
-
-
 
