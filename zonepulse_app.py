@@ -191,7 +191,7 @@ if uploaded_file:
             col7.metric("🧾 Total Deductions", f"₹{round(total_deductions, 2)}")
 
             # --- Weekly Metrics Charts ---
-            st.markdown("### 📈 Week-on-Week Performance (4 Metrics)")
+            st.markdown("### 📈 Week-on-Week Performance")
             de_data["WEEK"] = de_data["WEEK"].astype(str)
             weekly_df = de_data.groupby("WEEK").agg(
                 Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
