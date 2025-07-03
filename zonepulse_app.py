@@ -252,74 +252,59 @@ if uploaded_file:
                 st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False),
                                    file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
             else:
-                st.info("ℹ️ No hourly data found for this DE.")st.markdown("## 🌧️ Rain Day Participation Analysis")
+                st.info("ℹ️ No hourly data found for this DE.")
 
-if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns and "DT" in df.columns:
-    # The df here is already filtered by date, city, zone, vertical, etc.
-    rain_filter = st.selectbox("Filter by Rain Participation", ["Rain DE", "Non-Rain DE", "All DEs"])
+    # ---------------------- RAIN DAY PARTICIPATION ANALYSIS ----------------------
+    st.markdown("## 🌧️ Rain Day Participation Analysis")
+    if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
+        rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
+        total_rain_days = len(rain_dates)
+        rain_day_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
 
-    # Find DEs who worked at least one rain day IN THIS DATE RANGE
-    rain_de_ids = set(df[df["RAIN_FLAG"] == 1]["DE_ID"].unique())
-    all_de_ids = set(df["DE_ID"].unique())
-    non_rain_de_ids = all_de_ids - rain_de_ids
+        rain_de_df = rain_day_df[
+            (rain_day_df["TOTAL ORDERS"] > 0) | (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
+        ]
+        rain_de_participation = rain_de_df.groupby("DE_ID").agg(
+            DE_NAME=("DE_NAME", "first"),
+            Rain_Days_Worked=("DT", "nunique")
+        ).reset_index()
+        rain_de_participation["Rain_DE_Type"] = "Rain DE"
 
-    if rain_filter == "Rain DE":
-        filtered = df[(df["DE_ID"].isin(rain_de_ids)) & (df["RAIN_FLAG"] == 1)]
-        participation_type = "Rain DE"
-    elif rain_filter == "Non-Rain DE":
-        filtered = df[(df["DE_ID"].isin(non_rain_de_ids)) & (df["RAIN_FLAG"] == 0)]
-        participation_type = "Non-Rain DE"
-    else:  # All DEs
-        rain_part = df[(df["DE_ID"].isin(rain_de_ids)) & (df["RAIN_FLAG"] == 1)]
-        nonrain_part = df[(df["DE_ID"].isin(non_rain_de_ids)) & (df["RAIN_FLAG"] == 0)]
-        filtered = pd.concat([rain_part, nonrain_part])
-        # We'll set Participation_Type after grouping
+        non_rain_de_df = rain_day_df[
+            ~((rain_day_df["TOTAL ORDERS"] > 0) | (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False))
+        ]
+        non_rain_de_participation = non_rain_de_df.groupby("DE_ID").agg(
+            DE_NAME=("DE_NAME", "first"),
+            Rain_Days_Worked=("DT", "nunique")
+        ).reset_index()
+        non_rain_de_participation["Rain_DE_Type"] = "Non-Rain DE"
 
-    # Group by DE and show summary for only those filtered days
-    group_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE"]
-    agg_dict = {
-        "DT": "nunique",               # Number of days worked in this group
-        "TOTAL LOGIN MINS": "sum",
-        "TOTAL ORDERS": "sum",
-    }
-    if "REJECTED_ORDERS" in df.columns:
-        agg_dict["REJECTED_ORDERS"] = "sum"
-    if "DAILY_EARNINGS" in df.columns:
-        agg_dict["DAILY_EARNINGS"] = "sum"
+        all_participation = pd.concat([rain_de_participation, non_rain_de_participation], ignore_index=True)
+        all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
+        all_participation = all_des.merge(all_participation, on=["DE_ID", "DE_NAME"], how="left")
+        all_participation["Rain_Days_Worked"] = all_participation["Rain_Days_Worked"].fillna(0).astype(int)
+        all_participation["Rain_DE_Type"] = all_participation["Rain_DE_Type"].fillna("No Rain Login")
+        all_participation["Total_Rain_Days"] = total_rain_days
+        all_participation["Participation_%"] = (
+            (all_participation["Rain_Days_Worked"] / total_rain_days) * 100
+        ).round(2) if total_rain_days > 0 else 0
 
-    summary = filtered.groupby(group_cols).agg(agg_dict).reset_index()
-    summary = summary.rename(columns={
-        "DT": "Days_Worked",
-        "TOTAL LOGIN MINS": "Total_Login_Mins",
-        "TOTAL ORDERS": "Total_Orders"
-    })
-
-    # Assign Participation_Type
-    if rain_filter == "All DEs":
-        summary["Participation_Type"] = summary["DE_ID"].apply(lambda x: "Rain DE" if x in rain_de_ids else "Non-Rain DE")
+        filter_type = st.selectbox("Filter by Rain Participation", ["Rain DE", "Non-Rain DE", "All DEs"])
+        if filter_type == "Rain DE":
+            show_df = all_participation[all_participation["Rain_DE_Type"] == "Rain DE"]
+        elif filter_type == "Non-Rain DE":
+            show_df = all_participation[all_participation["Rain_DE_Type"] == "Non-Rain DE"]
+        else:
+            show_df = all_participation
+        st.dataframe(show_df.sort_values("Participation_%", ascending=False))
+        st.download_button(
+            "🌧️ Download Rain Day Participation",
+            data=show_df.to_csv(index=False),
+            file_name="rain_day_participation.csv",
+            mime="text/csv"
+        )
     else:
-        summary["Participation_Type"] = participation_type
-
-    display_cols = [
-        "DE_ID", "DE_NAME", "CITY", "ZONE", "Participation_Type",
-        "Days_Worked", "Total_Login_Mins", "Total_Orders"
-    ]
-    if "REJECTED_ORDERS" in summary.columns:
-        display_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in summary.columns:
-        display_cols.append("DAILY_EARNINGS")
-
-    st.dataframe(summary[display_cols].sort_values(by=["Participation_Type", "Days_Worked"], ascending=[False, False]))
-
-    st.download_button(
-        "🌧️ Download Rain Day Participation Summary",
-        data=summary[display_cols].to_csv(index=False),
-        file_name="rain_day_participation_summary.csv",
-        mime="text/csv"
-    )
-
-else:
-    st.info("Rain data (RAIN_FLAG), DE_ID or DT not available in the uploaded file.")
+        st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
 
     # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
@@ -358,3 +343,6 @@ else:
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
+
+
+
