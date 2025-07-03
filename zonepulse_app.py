@@ -144,7 +144,7 @@ if uploaded_file:
         st.markdown("## 📊 Zone-Level Hourly Report")
         st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
 
-    # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
+# ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
 if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
@@ -169,7 +169,7 @@ if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.colu
         st.altair_chart(bar, use_container_width=True)
 
         # Table: all DEs who logged in (login mins > 0) by date, with orders/rejections/earnings
-        de_cols = ["DT", "DE_ID", "DE_NAME", "TOTAL_LOGIN MINS", "TOTAL ORDERS"]
+        de_cols = ["DT", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
         if "REJECTED_ORDERS" in df.columns:
             de_cols.append("REJECTED_ORDERS")
         if "DAILY_EARNINGS" in df.columns:
