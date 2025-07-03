@@ -254,58 +254,6 @@ if uploaded_file:
             else:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-    # ---------------------- RAIN DAY PARTICIPATION ANALYSIS ----------------------
-    st.markdown("## 🌧️ Rain Day Participation Analysis")
-    if "RAIN_FLAG" in df.columns and "DE_ID" in df.columns:
-        rain_dates = df[df["RAIN_FLAG"] == 1]["DT"].unique()
-        total_rain_days = len(rain_dates)
-        rain_day_df = df[(df["DT"].isin(rain_dates)) & (df["RAIN_FLAG"] == 1) & (df["TOTAL LOGIN MINS"] > 0)]
-
-        rain_de_df = rain_day_df[
-            (rain_day_df["TOTAL ORDERS"] > 0) | (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False)
-        ]
-        rain_de_participation = rain_de_df.groupby("DE_ID").agg(
-            DE_NAME=("DE_NAME", "first"),
-            Rain_Days_Worked=("DT", "nunique")
-        ).reset_index()
-        rain_de_participation["Rain_DE_Type"] = "Rain DE"
-
-        non_rain_de_df = rain_day_df[
-            ~((rain_day_df["TOTAL ORDERS"] > 0) | (rain_day_df["REJECTED_ORDERS"] > 0 if "REJECTED_ORDERS" in df.columns else False))
-        ]
-        non_rain_de_participation = non_rain_de_df.groupby("DE_ID").agg(
-            DE_NAME=("DE_NAME", "first"),
-            Rain_Days_Worked=("DT", "nunique")
-        ).reset_index()
-        non_rain_de_participation["Rain_DE_Type"] = "Non-Rain DE"
-
-        all_participation = pd.concat([rain_de_participation, non_rain_de_participation], ignore_index=True)
-        all_des = df[["DE_ID", "DE_NAME"]].drop_duplicates()
-        all_participation = all_des.merge(all_participation, on=["DE_ID", "DE_NAME"], how="left")
-        all_participation["Rain_Days_Worked"] = all_participation["Rain_Days_Worked"].fillna(0).astype(int)
-        all_participation["Rain_DE_Type"] = all_participation["Rain_DE_Type"].fillna("No Rain Login")
-        all_participation["Total_Rain_Days"] = total_rain_days
-        all_participation["Participation_%"] = (
-            (all_participation["Rain_Days_Worked"] / total_rain_days) * 100
-        ).round(2) if total_rain_days > 0 else 0
-
-        filter_type = st.selectbox("Filter by Rain Participation", ["Rain DE", "Non-Rain DE", "All DEs"])
-        if filter_type == "Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Rain DE"]
-        elif filter_type == "Non-Rain DE":
-            show_df = all_participation[all_participation["Rain_DE_Type"] == "Non-Rain DE"]
-        else:
-            show_df = all_participation
-        st.dataframe(show_df.sort_values("Participation_%", ascending=False))
-        st.download_button(
-            "🌧️ Download Rain Day Participation",
-            data=show_df.to_csv(index=False),
-            file_name="rain_day_participation.csv",
-            mime="text/csv"
-        )
-    else:
-        st.info("Rain data (RAIN_FLAG) or DE_ID not available in the uploaded file.")
-
     # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
