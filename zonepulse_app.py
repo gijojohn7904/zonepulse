@@ -31,30 +31,8 @@ def check_password():
 
 check_password()
 
-# ---------------------- PAGE CONFIG & BANNERS ----------------------
-
-
-# Top of app
-col_logo, col_title = st.columns([1,6])
-with col_logo:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/1/12/Swiggy_logo.png", width=90)
-with col_title:
-    st.markdown("""
-    <h2 style='margin-bottom:0; color:#FF6600;'>ZonePulse – Swiggy Fleet Efficiency</h2>
-    <div style='font-size:1.1em; color:#555;'>Your Real-Time Ops Pulse for <b>Madurai • Tirupur • Pondy</b></div>
-    """, unsafe_allow_html=True)
-st.markdown("---")
-
+# ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
-st.markdown("""
-    <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
-    <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
-    This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
-    Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
-    Please handle this information responsibly, in accordance with company data policies.
-    </div>
-    """, unsafe_allow_html=True)
-
 st.markdown("""
     # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
     Monitor DE behavior, optimize login-to-order ratios, and ensure supply-demand harmony across every zone.
@@ -74,17 +52,15 @@ if uploaded_file:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
-    # ---------- VECTORISED PEAK FLAG CALCULATION ----------
-    lh_cols = [f"LH_{str(h).zfill(2)}" for h in range(24)]
-    for col in lh_cols:
+    # Vectorized PEAK flag calculation
+    for col in [f"LH_{str(h).zfill(2)}" for h in range(24)]:
         if col not in df.columns:
             df[col] = 0
-
-    df["BP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(7,12)]].gt(0).any(axis=1)).astype(int)
-    df["LP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(12,16)]].gt(0).any(axis=1)).astype(int)
-    df["SP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(16,19)]].gt(0).any(axis=1)).astype(int)
-    df["DP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(19,24)]].gt(0).any(axis=1)).astype(int)
-    df["LNP"] = (df[[f"LH_{str(h).zfill(2)}" for h in range(0,7)]].gt(0).any(axis=1)).astype(int)
+    df["BP"]  = df[[f"LH_{str(h).zfill(2)}" for h in range(7,12)]].gt(0).any(axis=1).astype(int)
+    df["LP"]  = df[[f"LH_{str(h).zfill(2)}" for h in range(12,16)]].gt(0).any(axis=1).astype(int)
+    df["SP"]  = df[[f"LH_{str(h).zfill(2)}" for h in range(16,19)]].gt(0).any(axis=1).astype(int)
+    df["DP"]  = df[[f"LH_{str(h).zfill(2)}" for h in range(19,24)]].gt(0).any(axis=1).astype(int)
+    df["LNP"] = df[[f"LH_{str(h).zfill(2)}" for h in range(0,7)]].gt(0).any(axis=1).astype(int)
 
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
@@ -275,9 +251,7 @@ if uploaded_file:
 
     # ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
-
     all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
-
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
@@ -287,10 +261,8 @@ if uploaded_file:
 
     de_login_data = df[df["TOTAL LOGIN MINS"] > 0].copy()
     de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
-
     for col in all_peak_cols:
         de_login_data[col] = de_login_data[col].astype(int)
-
     de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
 
     st.dataframe(de_login_data, use_container_width=True)
