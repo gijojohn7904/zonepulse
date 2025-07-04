@@ -71,7 +71,7 @@ if uploaded_file:
         df = df[df["VERTICAL"] == vertical]
     with col2:
         cities = sorted(df["CITY"].dropna().unique())
-        city_options = ["All"] + cities
+        city_options = ["All"] + list(cities)
         selected_city = st.selectbox("🏩 Choose City", city_options)
         if selected_city != "All":
             df = df[df["CITY"] == selected_city]
@@ -79,7 +79,7 @@ if uploaded_file:
     col3, col4 = st.columns(2)
     with col3:
         zones = sorted(df["ZONE"].dropna().unique())
-        zone_options = ["All"] + zones
+        zone_options = ["All"] + list(zones)
         selected_zone = st.selectbox("📍 Choose Zone", zone_options)
         if selected_zone != "All":
             df = df[df["ZONE"] == selected_zone]
@@ -137,63 +137,57 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-# ---------------------- DATE-WISE LOGIN COUNT (SIMPLE, WORKING) ----------------------
-st.markdown("## 📅 Date-wise Login Count for Selected Zone")
-
-if not df.empty:
-    # Build the filtered DataFrame by current city/zone selection
-    filter_mask = (df["TOTAL LOGIN MINS"] > 0)
-    if selected_city != "All":
-        filter_mask &= (df["CITY"] == selected_city)
-    if selected_zone != "All":
-        filter_mask &= (df["ZONE"] == selected_zone)
-    filtered_df = df[filter_mask].copy()
-    
-    # Group: Get count of unique DEs per day, per zone
-    login_counts = (
-        filtered_df.groupby(["DT", "ZONE"])
-        .agg(Login_Count=('DE_ID', 'nunique'))
-        .reset_index()
-    )
-    # Use the selected zone for the chart
-    if selected_zone == "All":
-        # If All, show for first available zone (or let user pick)
-        chart_zones = login_counts["ZONE"].unique()
-        if len(chart_zones) == 0:
-            st.info("No data for the selected filters.")
-            login_counts = pd.DataFrame()
-        else:
-            show_zone = chart_zones[0]  # Pick first
-            st.info(f"Showing chart for zone: {show_zone} (change filter for others)")
-            login_counts = login_counts[login_counts["ZONE"] == show_zone]
-    else:
-        show_zone = selected_zone
-        login_counts = login_counts[login_counts["ZONE"] == show_zone]
-
-    if not login_counts.empty:
-        chart = alt.Chart(login_counts).mark_line(point=True).encode(
-            x=alt.X("DT:T", title="Date"),
-            y=alt.Y("Login_Count", title="No. of DEs Logged In"),
-            tooltip=[
-                alt.Tooltip("DT:T", title="Date"),
-                alt.Tooltip("Login_Count", title="Active DE Count"),
-                alt.Tooltip("ZONE", title="Zone")
-            ]
-        ).properties(
-            title=f"Login Count per Day – {show_zone}"
-        ).interactive()
-        st.altair_chart(chart, use_container_width=True)
-        st.download_button(
-            "📥 Download Login Count (CSV)",
-            data=login_counts.to_csv(index=False),
-            file_name=f"{show_zone}_datewise_login_count.csv",
-            mime="text/csv"
+    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+    if not df.empty:
+        # Build the filtered DataFrame by current city/zone selection
+        filter_mask = (df["TOTAL LOGIN MINS"] > 0)
+        if selected_city != "All":
+            filter_mask &= (df["CITY"] == selected_city)
+        if selected_zone != "All":
+            filter_mask &= (df["ZONE"] == selected_zone)
+        filtered_df = df[filter_mask].copy()
+        
+        # Group: Get count of unique DEs per day, per zone
+        login_counts = (
+            filtered_df.groupby(["DT", "ZONE"])
+            .agg(Login_Count=('DE_ID', 'nunique'))
+            .reset_index()
         )
-    else:
-        st.info("No login data for this city/zone selection.")
+        # Use the selected zone for the chart
+        if selected_zone == "All":
+            chart_zones = login_counts["ZONE"].unique()
+            if len(chart_zones) == 0:
+                st.info("No data for the selected filters.")
+                login_counts = pd.DataFrame()
+            else:
+                show_zone = st.selectbox("Select Zone to Plot (for chart below):", sorted(chart_zones))
+                login_counts = login_counts[login_counts["ZONE"] == show_zone]
+        else:
+            show_zone = selected_zone
+            login_counts = login_counts[login_counts["ZONE"] == show_zone]
 
-
-
+        if not login_counts.empty:
+            chart = alt.Chart(login_counts).mark_line(point=True).encode(
+                x=alt.X("DT:T", title="Date"),
+                y=alt.Y("Login_Count", title="No. of DEs Logged In"),
+                tooltip=[
+                    alt.Tooltip("DT:T", title="Date"),
+                    alt.Tooltip("Login_Count", title="Active DE Count"),
+                    alt.Tooltip("ZONE", title="Zone")
+                ]
+            ).properties(
+                title=f"Login Count per Day – {show_zone}"
+            ).interactive()
+            st.altair_chart(chart, use_container_width=True)
+            st.download_button(
+                "📥 Download Login Count (CSV)",
+                data=login_counts.to_csv(index=False),
+                file_name=f"{show_zone}_datewise_login_count.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No login data for this city/zone selection.")
 
         # Table of DEs logged in per day
         st.markdown("#### 🔎 DEs Logged In Per Day")
@@ -211,7 +205,7 @@ if not df.empty:
         st.download_button(
             "📥 Download DE Login Detail (CSV)",
             data=de_login_data.to_csv(index=False),
-            file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
+            file_name=f"{show_zone}_datewise_login_DEs.csv",
             mime="text/csv"
         )
     else:
