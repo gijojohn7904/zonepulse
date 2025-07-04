@@ -140,39 +140,46 @@ if uploaded_file:
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not zone_hour_df.empty:
-        group_fields = ["DT", "CITY", "ZONE"]
+        # Only loop for valid combos in zone_hour_df
         login_chart_rows = []
-        all_dates = sorted(df["DT"].unique())
-        all_zones = [selected_zone] if selected_zone != "All" else sorted(df["ZONE"].unique())
-        all_cities = [selected_city] if selected_city != "All" else sorted(df["CITY"].unique())
-        for city in all_cities:
-            for zone in all_zones:
-                for dt in all_dates:
-                    hours = zone_hour_df[(zone_hour_df["DT"] == dt) & (zone_hour_df["ZONE"] == zone) & (zone_hour_df["CITY"] == city)]
-                    hour_status_list = [f"Hour {h}: {rec}" for h, rec in zip(hours["Hour"], hours["Recommendation"])]
-                    count_under = sum("Understaffed" in rec for rec in hours["Recommendation"])
-                    count_over = sum("Overstaffed" in rec for rec in hours["Recommendation"])
-                    count_bal = sum("Balanced" in rec for rec in hours["Recommendation"])
-                    n_hours = count_under + count_over + count_bal
-                    if n_hours == 0:
-                        maj_status = ""
-                    elif count_under > 12:
-                        maj_status = "Understaffed"
-                    elif count_over > 12:
-                        maj_status = "Overstaffed"
-                    else:
-                        maj_status = "Balanced"
-                    n_logged_in = df[(df["DT"] == dt) & (df["ZONE"] == zone) & (df["CITY"] == city) & (df["TOTAL LOGIN MINS"] > 0)]["DE_ID"].nunique()
-                    login_chart_rows.append({
-                        "DT": dt, "CITY": city, "ZONE": zone,
-                        "Login Count": n_logged_in,
-                        "Day Status": maj_status if maj_status else "No Data",
-                        "Hourly Detail": "\n".join(hour_status_list)
-                    })
+        zone_hour_df["DT"] = pd.to_datetime(zone_hour_df["DT"]).dt.date  # Defensive
+        unique_rows = zone_hour_df[["DT", "CITY", "ZONE"]].drop_duplicates()
+        for _, r in unique_rows.iterrows():
+            dt = r["DT"]
+            city = r["CITY"]
+            zone = r["ZONE"]
+            hours = zone_hour_df[(zone_hour_df["DT"] == dt) & (zone_hour_df["ZONE"] == zone) & (zone_hour_df["CITY"] == city)]
+            hour_status_list = [f"Hour {h}: {rec}" for h, rec in zip(hours["Hour"], hours["Recommendation"])]
+            count_under = sum("Understaffed" in rec for rec in hours["Recommendation"])
+            count_over = sum("Overstaffed" in rec for rec in hours["Recommendation"])
+            count_bal = sum("Balanced" in rec for rec in hours["Recommendation"])
+            n_hours = count_under + count_over + count_bal
+            if n_hours == 0:
+                maj_status = "No Data"
+            elif count_under > 12:
+                maj_status = "Understaffed"
+            elif count_over > 12:
+                maj_status = "Overstaffed"
+            else:
+                maj_status = "Balanced"
+            n_logged_in = df[
+                (df["DT"] == dt) &
+                (df["ZONE"] == zone) &
+                (df["CITY"] == city) &
+                (df["TOTAL LOGIN MINS"] > 0)
+            ]["DE_ID"].nunique()
+            login_chart_rows.append({
+                "DT": dt,
+                "CITY": city,
+                "ZONE": zone,
+                "Login Count": n_logged_in,
+                "Day Status": maj_status,
+                "Hourly Detail": "\n".join(hour_status_list)
+            })
         chart_df = pd.DataFrame(login_chart_rows)
         chart_df = chart_df[(chart_df["Login Count"] > 0) & (chart_df["Day Status"] != "No Data")]
         if not chart_df.empty:
-            chart = alt.Chart(chart_df).mark_line(point={"filled": True, "fill": "red", "size": 80}).encode(
+            chart = alt.Chart(chart_df).mark_line(point={"filled": True, "size": 90}).encode(
                 x=alt.X("DT:T", title="Date"),
                 y=alt.Y("Login Count", title="No. of DEs Logged In"),
                 color=alt.Color("Day Status:N", legend=alt.Legend(title="Staffing Status")),
@@ -196,6 +203,7 @@ if uploaded_file:
             )
         else:
             st.info("No login or staffing data for this selection.")
+
 
         # Table of DEs logged in per day
         st.markdown("#### 🔎 DEs Logged In Per Day")
