@@ -200,18 +200,6 @@ if uploaded_file:
 
             st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
 
-            # --- Heatmap for Rain Participation %
-            if not zone_part_df.empty:
-                zone_part_df['Rain_Date'] = selected_rain_date
-                heatmap = alt.Chart(zone_part_df).mark_rect().encode(
-                    x=alt.X('Zone:N', title='Zone', sort=zone_part_df['Zone'].tolist()),
-                    y=alt.Y('Rain_Date:O', title='Rain Date'),
-                    color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0,100]), legend=alt.Legend(title='Participation %')),
-                    tooltip=['Zone', 'City', 'Rain_Date', 'Eligible_Actives', 'Rain_Logins', 'Rain_Participation_%']
-                ).properties(
-                    width=800, height=100+25*len(zone_part_df), title="Rain Participation % by Zone"
-                )
-                st.altair_chart(heatmap, use_container_width=True)
 
             # --- DE-Level Skippers Table (≥80% active last 7d)
             all_de_rows = []
