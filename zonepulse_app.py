@@ -61,6 +61,15 @@ if uploaded_file:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
+    # --------- DYNAMIC PEAK FLAG CALCULATION (IGNORE ANY COLUMNS IN FILE) ---------
+    def flag_peak(row, hours):
+        return int(any(row.get(f"LH_{str(h).zfill(2)}", 0) > 0 for h in hours))
+    df["BP"]  = df.apply(lambda row: flag_peak(row, range(7,12)), axis=1)   # Breakfast Peak 7-11
+    df["LP"]  = df.apply(lambda row: flag_peak(row, range(12,16)), axis=1)  # Lunch Peak 12-15
+    df["SP"]  = df.apply(lambda row: flag_peak(row, range(16,19)), axis=1)  # Snack Peak 16-18
+    df["DP"]  = df.apply(lambda row: flag_peak(row, range(19,24)), axis=1)  # Dinner Peak 19-23
+    df["LNP"] = df.apply(lambda row: flag_peak(row, range(0,7)), axis=1)    # Late Night Peak 0-6
+
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
@@ -137,7 +146,7 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    # ---------------------- DATE-WISE LOGIN COUNT (LINE CHART) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
@@ -186,8 +195,8 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
+    # ---------------------- HOURLY LOGIN DISTRIBUTION CHART ----------------------
     st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
-
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
@@ -250,21 +259,24 @@ if uploaded_file:
 
     # ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
+
     all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
-    for col in all_peak_cols:
-        if col not in df.columns:
-            df[col] = 0
+
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
     if "DAILY_EARNINGS" in df.columns:
         de_cols.append("DAILY_EARNINGS")
     de_cols += all_peak_cols
+
     de_login_data = df[df["TOTAL LOGIN MINS"] > 0].copy()
     de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
+
     for col in all_peak_cols:
         de_login_data[col] = de_login_data[col].apply(lambda x: 1 if x == 1 else 0)
+
     de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+
     st.dataframe(de_login_data, use_container_width=True)
     st.download_button(
         "📥 Download DE Login Detail (CSV)",
