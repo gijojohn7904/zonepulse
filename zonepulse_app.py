@@ -189,6 +189,47 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
+                # ---- Hourly Login Bar Graph for Selected Zone ----
+        st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
+
+        hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
+        if hourly_cols and not df.empty:
+            # Work only on filtered dataframe for selected city and zone
+            hourly_df = df.copy()
+            if selected_city != "All":
+                hourly_df = hourly_df[hourly_df["CITY"] == selected_city]
+            if selected_zone != "All":
+                hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
+            else:
+                hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]  # fallback for All/zone selectbox
+
+            # For each hour, count DEs who have >0 login mins in that hour (any day in range)
+            hour_data = []
+            for hr in range(24):
+                col = f"LH_{str(hr).zfill(2)}"
+                if col in hourly_df.columns:
+                    count = (hourly_df[col] > 0).sum()
+                    hour_data.append({"Hour": f"{str(hr).zfill(2)}:00", "Active DEs": count})
+            hour_chart_df = pd.DataFrame(hour_data)
+
+            if not hour_chart_df.empty:
+                bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
+                    x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
+                    y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)"),
+                    tooltip=[
+                        alt.Tooltip("Hour", title="Hour"),
+                        alt.Tooltip("Active DEs", title="Logged In DEs")
+                    ]
+                ).properties(
+                    title=f"Hourly Login Distribution – {show_zone}"
+                )
+                st.altair_chart(bar, use_container_width=True)
+            else:
+                st.info("No hourly login data found for this selection.")
+        else:
+            st.info("No hourly login data available in uploaded file.")
+
+
         # Table of DEs logged in per day
         st.markdown("#### 🔎 DEs Logged In Per Day")
         de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
