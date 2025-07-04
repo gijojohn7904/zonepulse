@@ -148,51 +148,143 @@ if uploaded_file:
         st.dataframe(zone_hour_df.sort_values(by=["CITY", "ZONE", "Hour"]))
     else:
         st.info("No hourly data available for the selected filters.")
+# ---------------------- DATE-WISE LOGIN COUNT WITH HOUR-WISE STATUS ----------------------
+if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
+    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+    selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
+    zone_filtered = df if selected_zone == "All" else df[df["ZONE"] == selected_zone]
 
-    # ---------------------- DATE-WISE LOGIN COUNT FOR ZONE ----------------------
-    if "ZONE" in df.columns and "DT" in df.columns and "TOTAL LOGIN MINS" in df.columns:
-        st.markdown("## 📅 Date-wise Login Count for Selected Zone")
-        selected_zone_label = selected_zone if selected_zone != "All" else "All Zones"
-        zone_filtered = df if selected_zone == "All" else df[df["ZONE"] == selected_zone]
-        date_login_counts = (
-            zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
-            .groupby("DT")["DE_ID"].nunique()
-            .reset_index()
-            .rename(columns={"DE_ID": "Login Count"})
+    # Build day/hourly status map from zone_hour_df
+    day_status_rows = []
+    if 'zone_hour_df' in locals():
+        zhd = zone_hour_df.copy()
+        if "DT" in zone_filtered.columns and "DT" in zhd.columns:
+            zhd["DT"] = pd.to_datetime(zhd["DT"]).dt.date
+        if "DT" in zone_filtered.columns:
+            zone_filtered["DT"] = pd.to_datetime(zone_filtered["DT"]).dt.date
+
+        city_col = "CITY" if "CITY" in zone_filtered.columns else None
+        zone_col = "ZONE"
+
+        for date in sorted(zone_filtered["DT"].unique()):
+            # Could be multiple cities if 'All' city selected
+            subrows = zone_filtered[zone_filtered["DT"] == date]
+            for zone_name in subrows[zone_col].unique():
+                # Could be multiple cities if All
+                if city_col:
+                    for city in subrows[subrows[zone_col] == zone_name][city_col].unique():
+                        filter_ = (
+                            (zhd["DT"] == date) &
+                            (zhd[zone_col] == zone_name) &
+                            (zhd[city_col] == city)
+                        )
+                        zone_hours = zhd[filter_]
+                        status_per_hr = [
+                            f"Hour {int(h)} – {r}" for h, r in zip(zone_hours["Hour"], zone_hours["Recommendation"])
+                        ]
+                        # Status for tooltip
+                        status_counter = {"Understaffed": 0, "Overstaffed": 0, "Balanced": 0}
+                        for r in zone_hours["Recommendation"]:
+                            if "Understaffed" in r:
+                                status_counter["Understaffed"] += 1
+                            elif "Overstaffed" in r:
+                                status_counter["Overstaffed"] += 1
+                            else:
+                                status_counter["Balanced"] += 1
+                        majority_status = max(status_counter, key=status_counter.get)
+                        day_status = (
+                            majority_status if status_counter[majority_status] > 12
+                            else "Balanced"
+                        )
+                        login_count = subrows[
+                            (subrows[zone_col] == zone_name) &
+                            (subrows[city_col] == city) &
+                            (subrows["TOTAL LOGIN MINS"] > 0)
+                        ]["DE_ID"].nunique()
+                        day_status_rows.append({
+                            "DT": date,
+                            "CITY": city,
+                            "ZONE": zone_name,
+                            "Login Count": login_count,
+                            "Day Status": day_status,
+                            "Hourly Detail": "\n".join(status_per_hr) if status_per_hr else "No Hourly Data"
+                        })
+                else:
+                    filter_ = (
+                        (zhd["DT"] == date) &
+                        (zhd[zone_col] == zone_name)
+                    )
+                    zone_hours = zhd[filter_]
+                    status_per_hr = [
+                        f"Hour {int(h)} – {r}" for h, r in zip(zone_hours["Hour"], zone_hours["Recommendation"])
+                    ]
+                    status_counter = {"Understaffed": 0, "Overstaffed": 0, "Balanced": 0}
+                    for r in zone_hours["Recommendation"]:
+                        if "Understaffed" in r:
+                            status_counter["Understaffed"] += 1
+                        elif "Overstaffed" in r:
+                            status_counter["Overstaffed"] += 1
+                        else:
+                            status_counter["Balanced"] += 1
+                    majority_status = max(status_counter, key=status_counter.get)
+                    day_status = (
+                        majority_status if status_counter[majority_status] > 12
+                        else "Balanced"
+                    )
+                    login_count = subrows[
+                        (subrows[zone_col] == zone_name) &
+                        (subrows["TOTAL LOGIN MINS"] > 0)
+                    ]["DE_ID"].nunique()
+                    day_status_rows.append({
+                        "DT": date,
+                        "CITY": subrows.iloc[0][city_col] if city_col else "",
+                        "ZONE": zone_name,
+                        "Login Count": login_count,
+                        "Day Status": day_status,
+                        "Hourly Detail": "\n".join(status_per_hr) if status_per_hr else "No Hourly Data"
+                    })
+
+    # Build DataFrame
+    date_login_counts = pd.DataFrame(day_status_rows)
+
+    # Filter for current zone/city as per dropdown
+    if not date_login_counts.empty:
+        filter_mask = (date_login_counts["ZONE"] == selected_zone) if selected_zone != "All" else True
+        if "CITY" in date_login_counts.columns and "selected_city" in locals() and selected_city != "All":
+            filter_mask &= (date_login_counts["CITY"] == selected_city)
+        chart_df = date_login_counts[filter_mask]
+
+        # Interactive line chart with circles and detailed tooltip
+        line = alt.Chart(chart_df).mark_line(point=alt.OverlayMarkDef(color="red", size=85)).encode(
+            x=alt.X("DT:T", title="Date"),
+            y=alt.Y("Login Count", title="No. of DEs Logged In"),
+            tooltip=[
+                alt.Tooltip("DT:T", title="Date"),
+                alt.Tooltip("CITY", title="City"),
+                alt.Tooltip("ZONE", title="Zone"),
+                alt.Tooltip("Login Count", title="DEs Logged In"),
+                alt.Tooltip("Day Status", title="Staffing Status"),
+                alt.Tooltip("Hourly Detail", title="Hour-wise Staffing", format="string")
+            ],
+            color=alt.Color("Day Status:N", legend=alt.Legend(title="Day Status"))
+        ).properties(
+            title=f"Login Count per Day – {selected_zone_label}"
+        ).interactive()
+
+        st.altair_chart(line, use_container_width=True)
+
+        # Downloadable detailed table
+        st.markdown("#### 🔎 DE Login Status by Date")
+        st.dataframe(chart_df, use_container_width=True)
+        st.download_button(
+            "📥 Download Login Status Detail (CSV)",
+            data=chart_df.to_csv(index=False),
+            file_name=f"{selected_zone_label}_datewise_login_status.csv",
+            mime="text/csv"
         )
-        if not date_login_counts.empty:
-            bar = alt.Chart(date_login_counts).mark_bar().encode(
-                x=alt.X("DT:T", title="Date"),
-                y=alt.Y("Login Count", title="No. of DEs Logged In"),
-                tooltip=["DT", "Login Count"]
-            ).properties(
-                title=f"Login Count per Day – {selected_zone_label}"
-            )
-            st.altair_chart(bar, use_container_width=True)
+    else:
+        st.info("No DEs logged in for the selected zone and date range.")
 
-            # DE login detail table
-            de_cols = ["DT", "CITY", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
-            if "REJECTED_ORDERS" in df.columns:
-                de_cols.append("REJECTED_ORDERS")
-            if "DAILY_EARNINGS" in df.columns:
-                de_cols.append("DAILY_EARNINGS")
-
-            de_login_data = (
-                zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
-                .loc[:, de_cols]
-                .sort_values(["DT", "CITY", "DE_ID"])
-            )
-
-            st.markdown("#### 🔎 DEs Logged In Per Day")
-            st.dataframe(de_login_data, use_container_width=True)
-            st.download_button(
-                "📥 Download DE Login Detail (CSV)",
-                data=de_login_data.to_csv(index=False),
-                file_name=f"{selected_zone_label}_datewise_login_DEs.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("No DEs logged in for the selected zone and date range.")
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
