@@ -96,11 +96,11 @@ if uploaded_file:
         if selected_zone != "All":
             df = df[df["ZONE"] == selected_zone]
     with col4:
-        df["DT"] = pd.to_datetime(df["DT"]).dt.date
-        min_date, max_date = df["DT"].min(), df["DT"].max()
+        df["DT"] = pd.to_datetime(df["DT"])
+        min_date, max_date = df["DT"].dt.date.min(), df["DT"].dt.date.max()
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
-            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+            df = df[(df["DT"].dt.date >= selected_dates[0]) & (df["DT"].dt.date <= selected_dates[1])]
 
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
@@ -263,6 +263,7 @@ if uploaded_file:
     # ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
     all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
+
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
@@ -272,10 +273,8 @@ if uploaded_file:
 
     de_login_data = df[df["TOTAL LOGIN MINS"] > 0].copy()
     de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
-
     for col in all_peak_cols:
         de_login_data[col] = de_login_data[col].astype(int)
-
     de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
 
     st.dataframe(de_login_data, use_container_width=True)
@@ -421,8 +420,8 @@ if uploaded_file:
     with col_curr:
         curr_dates = st.date_input("🗕️ Select Current Period", [])
     if len(prev_dates) == 2 and len(curr_dates) == 2:
-        prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
-        curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
+        prev_df = df[(df["DT"].dt.date >= prev_dates[0]) & (df["DT"].dt.date <= prev_dates[1])]
+        curr_df = df[(df["DT"].dt.date >= curr_dates[0]) & (df["DT"].dt.date <= curr_dates[1])]
         prev_logged_in = prev_df[prev_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
         curr_logged_in = curr_df[curr_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
         no_show_ids = set(prev_logged_in) - set(curr_logged_in)
@@ -448,37 +447,32 @@ if uploaded_file:
     else:
         st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
 
-    # ====================== RAIN PARTICIPATION BLOCK ======================
-    # ----------- ALL RAIN ANALYSIS BELOW THIS LINE -----------
-    LOOKBACK_DAYS = 14   # Change as needed
+    # ---------------------- RAIN PARTICIPATION BLOCK ----------------------
+    LOOKBACK_DAYS = 14   # You can change lookback window here
     rain_flag_col = "RAIN_FLAG"
-
     if rain_flag_col not in df.columns:
         st.warning("No RAIN_FLAG column in uploaded file. Please include rain flag for this analysis.")
     else:
         st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE level)")
-
-        df["DT"] = pd.to_datetime(df["DT"])
-        df["DATE"] = df["DT"].dt.date  # For groupby
+        df["DATE"] = df["DT"].dt.date
         df = df.sort_values(["CITY", "ZONE", "DT"])
-
         # --- Identify rain days per zone
         rain_days_df = df[df[rain_flag_col] == 1][["ZONE", "CITY", "DATE"]].drop_duplicates()
         rain_days = rain_days_df["DATE"].unique()
-
         # --- Calculate zone-level recent actives (per day, per zone)
         zone_participation = []
         for zone, city in df[["ZONE", "CITY"]].drop_duplicates().values:
-            zone_df = df[(df["ZONE"] == zone) & (df["CITY"] == city)]
+            zone_df = df[(df["ZONE"] == zone) & (df["CITY"] == city)].copy()
+            zone_df["DATE"] = pd.to_datetime(zone_df["DATE"]).dt.date
             for date in sorted(rain_days):
-                # All DEs active in zone in last X days *before* this rain day
-                lookback_start = pd.to_datetime(date) - pd.Timedelta(days=LOOKBACK_DAYS)
-                base_DEs = zone_df[(zone_df["DATE"] >= lookback_start) & (zone_df["DATE"] < date)]["DE_ID"].unique()
-                # DEs who logged in during this rain day in this zone
-                rain_DEs = zone_df[(zone_df["DATE"] == date) & (zone_df[rain_flag_col] == 1) & (zone_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"].unique()
+                date_dt = pd.to_datetime(date).date()
+                lookback_start = date_dt - pd.Timedelta(days=LOOKBACK_DAYS)
+                lookback_start = pd.to_datetime(lookback_start).date()
+                base_DEs = zone_df[(zone_df["DATE"] >= lookback_start) & (zone_df["DATE"] < date_dt)]["DE_ID"].unique()
+                rain_DEs = zone_df[(zone_df["DATE"] == date_dt) & (zone_df[rain_flag_col] == 1) & (zone_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"].unique()
                 rate = (len(rain_DEs) / len(base_DEs)) * 100 if len(base_DEs) else np.nan
                 zone_participation.append({
-                    "Zone": zone, "City": city, "Rain_Date": date,
+                    "Zone": zone, "City": city, "Rain_Date": date_dt,
                     "Base_Actives": len(base_DEs),
                     "Rain_Logins": len(rain_DEs),
                     "Rain_Participation_%": round(rate, 2) if not np.isnan(rate) else None
@@ -502,7 +496,7 @@ if uploaded_file:
 
         # --- DE-Level Rain Skippers
         st.markdown("### ⛔ Rain Skippers (Active but Skipped Rain Days)")
-        recent_actives = df[df["DATE"] >= df["DATE"].max() - pd.Timedelta(days=LOOKBACK_DAYS)]["DE_ID"].unique()
+        recent_actives = df[df["DATE"] >= (df["DATE"].max() - pd.Timedelta(days=LOOKBACK_DAYS))]["DE_ID"].unique()
         rain_skip_data = []
         for de in recent_actives:
             de_rows = df[df["DE_ID"] == de]
