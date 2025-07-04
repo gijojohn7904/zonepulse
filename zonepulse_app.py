@@ -306,7 +306,7 @@ if uploaded_file:
             st.info("No login data for this city/zone selection.")
 
     # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
-    st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
+    st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
 
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
