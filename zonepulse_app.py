@@ -251,28 +251,35 @@ if uploaded_file:
 # ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
 st.markdown("#### 🔎 DEs Logged In Per Day")
 
-# These are your standard peak columns in the order you want
+# Standard peak columns in fixed order
 all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
 
-# Ensure all peak columns exist in DataFrame (fill missing with 0)
+# Always ensure all peak columns exist in df, fill missing with 0
 for col in all_peak_cols:
     if col not in df.columns:
         df[col] = 0
 
-# Build columns to show in the order you want
+# Build your output columns
 de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
 if "REJECTED_ORDERS" in df.columns:
     de_cols.append("REJECTED_ORDERS")
 if "DAILY_EARNINGS" in df.columns:
     de_cols.append("DAILY_EARNINGS")
-de_cols += all_peak_cols  # Add peaks at the end
+de_cols += all_peak_cols  # Add peak columns at the end, always in order
 
-# Only keep columns present (safe for any dataset)
-de_login_data = (
-    df[df["TOTAL LOGIN MINS"] > 0]
-    .loc[:, [c for c in de_cols if c in df.columns]]
-    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-)
+# Filter only those who logged in
+de_login_data = df[df["TOTAL LOGIN MINS"] > 0].copy()
+
+# Safety: Make sure only the columns that exist (for weird data) are kept
+de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
+
+# Force peak columns to be only 1 or 0 (in case of data weirdness)
+for col in all_peak_cols:
+    de_login_data[col] = de_login_data[col].apply(lambda x: 1 if x == 1 else 0)
+
+# Order and show
+de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+
 st.dataframe(de_login_data, use_container_width=True)
 st.download_button(
     "📥 Download DE Login Detail (CSV)",
@@ -280,6 +287,7 @@ st.download_button(
     file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
     mime="text/csv"
 )
+
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
