@@ -34,13 +34,13 @@ check_password()
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
-    <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
-    <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
-    This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
-    Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
-    Please handle this information responsibly, in accordance with company data policies.
-    </div>
-    """, unsafe_allow_html=True)
+<div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
+<b>⚠️ Confidentiality Notice by Swiggy:</b><br>
+This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
+Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
+Please handle this information responsibly, in accordance with company data policies.
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
@@ -96,29 +96,28 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
-st.info(
-    "💡 **Login Utilization % Explained:**\n"
-    "- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.\n"
-    "- Measures how efficiently active DEs are utilized each hour.\n"
-    "\n"
-    "**Interpretation:**\n"
-    "- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.\n"
-    "- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.\n"
-    "\n"
-    "**Thresholds:**\n"
-    "- **Instamart:**\n"
-    "    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%\n"
-    "    - Understaffed: Orders/hr > 2.2 & Utilization > 70%\n"
-    "    - Otherwise: Balanced\n"
-    "- **SwiggyFood:**\n"
-    "    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%\n"
-    "    - Understaffed: Orders/hr > 1.2 & Utilization > 57%\n"
-    "    - Otherwise: Balanced\n"
-    "\n"
-    "⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.",
-    icon="ℹ️"
-)
-
+    st.info(
+        "💡 **Login Utilization % Explained:**\n"
+        "- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.\n"
+        "- Measures how efficiently active DEs are utilized each hour.\n"
+        "\n"
+        "**Interpretation:**\n"
+        "- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.\n"
+        "- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.\n"
+        "\n"
+        "**Thresholds:**\n"
+        "- **Instamart:**\n"
+        "    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%\n"
+        "    - Understaffed: Orders/hr > 2.2 & Utilization > 70%\n"
+        "    - Otherwise: Balanced\n"
+        "- **SwiggyFood:**\n"
+        "    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%\n"
+        "    - Understaffed: Orders/hr > 1.2 & Utilization > 57%\n"
+        "    - Otherwise: Balanced\n"
+        "\n"
+        "⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.",
+        icon="ℹ️"
+    )
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
