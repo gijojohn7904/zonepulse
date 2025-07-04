@@ -144,7 +144,7 @@ if uploaded_file:
     # Column header FAQ/hint
     st.info(
         "💡 **Who counts as an 'Eligible Active'?** "
-        "<br>A DE is eligible if they were present in a zone for at least 80% of the last 7 days before the rain date (i.e., logged in ≥6 of last 7 days, excluding the rain day itself). "
+        "A DE is eligible if they were present in a zone for at least 80% of the last 7 days before the rain date (i.e., logged in ≥6 of last 7 days, excluding the rain day itself). "
         "This filters out one-timers, week-off, and focuses only on your core regulars.",
         icon="ℹ️"
     )
