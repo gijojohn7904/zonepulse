@@ -190,66 +190,72 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
-        # ---- Hourly Login Bar Graph with Recommendation Colors ----
-        st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
+st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
 
-        hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
-        if hourly_cols and not df.empty and not zone_hour_df.empty:
-            # Work only on filtered dataframe for selected city and zone
-            hourly_df = df.copy()
-            show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
-            show_city = selected_city if selected_city != "All" else (zone_hour_df["CITY"].iloc[0] if not zone_hour_df.empty else None)
-            if selected_city != "All":
-                hourly_df = hourly_df[hourly_df["CITY"] == selected_city]
-            if selected_zone != "All":
-                hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
-            elif show_zone is not None:
-                hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]
+hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
+order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
-            # For each hour, get count and status (rec)
-            hour_data = []
-            for hr in range(24):
-                col = f"LH_{str(hr).zfill(2)}"
-                if col in hourly_df.columns:
-                    count = (hourly_df[col] > 0).sum()
-                    # Get Recommendation for this hour from zone_hour_df
-                    rec_row = zone_hour_df[
-                        (zone_hour_df["Hour"] == hr) &
-                        (zone_hour_df["ZONE"] == show_zone) &
-                        (zone_hour_df["CITY"] == show_city)
-                    ]
-                    rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "✅ Balanced"
-                    hour_data.append({
-                        "Hour": f"{str(hr).zfill(2)}:00",
-                        "Active DEs": count,
-                        "Recommendation": rec
-                    })
-            hour_chart_df = pd.DataFrame(hour_data)
+if hourly_cols and not df.empty and not zone_hour_df.empty:
+    # Filter by city/zone as per selection
+    hourly_df = df.copy()
+    show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
+    show_city = selected_city if selected_city != "All" else (zone_hour_df["CITY"].iloc[0] if not zone_hour_df.empty else None)
+    if selected_city != "All":
+        hourly_df = hourly_df[hourly_df["CITY"] == selected_city]
+    if selected_zone != "All":
+        hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
+    elif show_zone is not None:
+        hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]
 
-            # Set color map: Red = Understaffed, Orange = Overstaffed, Green = Balanced
-            color_scale = alt.Scale(
-                domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
-                range=["#e53935", "#fb8c00", "#43a047"]
-            )
+    # Build list for chart
+    hour_data = []
+    for hr in range(24):
+        lh_col = f"LH_{str(hr).zfill(2)}"
+        fd_col = f"FD_{str(hr).zfill(2)}"
+        if lh_col in hourly_df.columns:
+            count = (hourly_df[lh_col] > 0).sum()
+            orders = hourly_df[fd_col].sum() if fd_col in hourly_df.columns else 0
+            # Recommendation
+            rec_row = zone_hour_df[
+                (zone_hour_df["Hour"] == hr) &
+                (zone_hour_df["ZONE"] == show_zone) &
+                (zone_hour_df["CITY"] == show_city)
+            ]
+            rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "✅ Balanced"
+            hour_data.append({
+                "Hour": f"{str(hr).zfill(2)}:00",
+                "Active DEs": count,
+                "Active Orders": int(orders),
+                "Recommendation": rec
+            })
+    hour_chart_df = pd.DataFrame(hour_data)
 
-            if not hour_chart_df.empty:
-                bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
-                    x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
-                    y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)"),
-                    color=alt.Color("Recommendation:N", scale=color_scale, legend=alt.Legend(title="Hour Status")),
-                    tooltip=[
-                        alt.Tooltip("Hour", title="Hour"),
-                        alt.Tooltip("Active DEs", title="Logged In DEs"),
-                        alt.Tooltip("Recommendation", title="Staffing Status")
-                    ]
-                ).properties(
-                    title=f"Hourly Login Distribution – {show_zone if show_zone else ''}"
-                )
-                st.altair_chart(bar, use_container_width=True)
-            else:
-                st.info("No hourly login data found for this selection.")
-        else:
-            st.info("No hourly login data available in uploaded file.")
+    # Color map for bar chart
+    color_scale = alt.Scale(
+        domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
+        range=["#e53935", "#fb8c00", "#43a047"]
+    )
+
+    if not hour_chart_df.empty:
+        bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
+            x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
+            y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)"),
+            color=alt.Color("Recommendation:N", scale=color_scale, legend=alt.Legend(title="Hour Status")),
+            tooltip=[
+                alt.Tooltip("Hour", title="Hour"),
+                alt.Tooltip("Active DEs", title="Logged In DEs"),
+                alt.Tooltip("Active Orders", title="Order Count"),
+                alt.Tooltip("Recommendation", title="Staffing Status"),
+            ]
+        ).properties(
+            title=f"Hourly Login Distribution – {show_zone if show_zone else ''}"
+        )
+        st.altair_chart(bar, use_container_width=True)
+    else:
+        st.info("No hourly login data found for this selection.")
+else:
+    st.info("No hourly login data available in uploaded file.")
+
 
 
         # Table of DEs logged in per day
