@@ -8,7 +8,7 @@ def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Wipe after use
+            del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
     if "password_correct" not in st.session_state:
@@ -29,7 +29,7 @@ def check_password():
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
-check_password()  # 🔒 Enforce password before running further
+check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
@@ -186,7 +186,6 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
-    # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
     st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
 
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
@@ -249,39 +248,28 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-# ---------------------- DEs Logged In Per Day TABLE (with peak flags) ----------------------
-
-st.markdown("#### 🔎 DEs Logged In Per Day")
-
-# Core columns
-de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
-
-# Optional columns if present
-if "REJECTED_ORDERS" in df.columns:
-    de_cols.append("REJECTED_ORDERS")
-if "DAILY_EARNINGS" in df.columns:
-    de_cols.append("DAILY_EARNINGS")
-
-# Add all peak flags if present
-for peak in ["BP", "LP", "SP", "DP", "LNP"]:
-    if peak in df.columns:
-        de_cols.append(peak)
-
-# Build the table
-de_login_data = (
-    df[df["TOTAL LOGIN MINS"] > 0]
-    .loc[:, [c for c in de_cols if c in df.columns]]
-    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-)
-
-st.dataframe(de_login_data, use_container_width=True)
-st.download_button(
-    "📥 Download DE Login Detail (CSV)",
-    data=de_login_data.to_csv(index=False),
-    file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
-    mime="text/csv"
-)
-
+    # ---------------------- DEs Logged In Per Day (with peaks) ----------------------
+    st.markdown("#### 🔎 DEs Logged In Per Day")
+    de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
+    if "REJECTED_ORDERS" in df.columns:
+        de_cols.append("REJECTED_ORDERS")
+    if "DAILY_EARNINGS" in df.columns:
+        de_cols.append("DAILY_EARNINGS")
+    for peak in ["BP", "LP", "SP", "DP", "LNP"]:
+        if peak in df.columns:
+            de_cols.append(peak)
+    de_login_data = (
+        df[df["TOTAL LOGIN MINS"] > 0]
+        .loc[:, [c for c in de_cols if c in df.columns]]
+        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+    )
+    st.dataframe(de_login_data, use_container_width=True)
+    st.download_button(
+        "📥 Download DE Login Detail (CSV)",
+        data=de_login_data.to_csv(index=False),
+        file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
+        mime="text/csv"
+    )
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
@@ -316,7 +304,6 @@ st.download_button(
             total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
             total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
-            # Centered DE header
             st.markdown(f"""
             <div style="text-align:center;">
                 <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
@@ -335,7 +322,6 @@ st.download_button(
             </div>
             """, unsafe_allow_html=True)
 
-            # --- BIG & BOLD Week-on-Week Performance header ---
             st.markdown(
                 """
                 <div style='
@@ -371,7 +357,6 @@ st.download_button(
                 ).properties(title=f"📊 {metric} by Week")
                 col.altair_chart(chart, use_container_width=True)
 
-            # --- Login Minutes vs Total Orders ---
             st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
             chart_df = de_data.sort_values("DT")
             base = alt.Chart(chart_df).encode(x="DT:T")
@@ -388,7 +373,6 @@ st.download_button(
                 use_container_width=True
             )
 
-            # --- Hourly Login vs Orders (Per Day) ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
             hourly_records = []
             for _, row in de_data.iterrows():
