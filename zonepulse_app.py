@@ -61,14 +61,17 @@ if uploaded_file:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
-    # --------- DYNAMIC PEAK FLAG CALCULATION (IGNORE ANY COLUMNS IN FILE) ---------
-    def flag_peak(row, hours):
-        return int(any(row.get(f"LH_{str(h).zfill(2)}", 0) > 0 for h in hours))
-    df["BP"]  = df.apply(lambda row: flag_peak(row, range(7,12)), axis=1)   # Breakfast Peak 7-11
-    df["LP"]  = df.apply(lambda row: flag_peak(row, range(12,16)), axis=1)  # Lunch Peak 12-15
-    df["SP"]  = df.apply(lambda row: flag_peak(row, range(16,19)), axis=1)  # Snack Peak 16-18
-    df["DP"]  = df.apply(lambda row: flag_peak(row, range(19,24)), axis=1)  # Dinner Peak 19-23
-    df["LNP"] = df.apply(lambda row: flag_peak(row, range(0,7)), axis=1)    # Late Night Peak 0-6
+    # ---------- VECTORISED PEAK FLAG CALCULATION ----------
+    lh_cols = [f"LH_{str(h).zfill(2)}" for h in range(24)]
+    for col in lh_cols:
+        if col not in df.columns:
+            df[col] = 0
+
+    df["BP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(7,12)]].gt(0).any(axis=1)).astype(int)
+    df["LP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(12,16)]].gt(0).any(axis=1)).astype(int)
+    df["SP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(16,19)]].gt(0).any(axis=1)).astype(int)
+    df["DP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(19,24)]].gt(0).any(axis=1)).astype(int)
+    df["LNP"] = (df[[f"LH_{str(h).zfill(2)}" for h in range(0,7)]].gt(0).any(axis=1)).astype(int)
 
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
@@ -273,7 +276,7 @@ if uploaded_file:
     de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
 
     for col in all_peak_cols:
-        de_login_data[col] = de_login_data[col].apply(lambda x: 1 if x == 1 else 0)
+        de_login_data[col] = de_login_data[col].astype(int)
 
     de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
 
