@@ -34,13 +34,13 @@ check_password()
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
-<div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
-<b>⚠️ Confidentiality Notice by Swiggy:</b><br>
-This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
-Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
-Please handle this information responsibly, in accordance with company data policies.
-</div>
-""", unsafe_allow_html=True)
+    <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
+    <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
+    This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
+    Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
+    Please handle this information responsibly, in accordance with company data policies.
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
@@ -95,8 +95,9 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-with st.expander("💡 Login Utilization % Explained (click to expand)"):
-    st.markdown("""
+    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
+    with st.expander("💡 Login Utilization % Explained (click to expand)"):
+        st.markdown("""
 - **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
 - Measures how efficiently active DEs are utilized each hour.
 
@@ -115,7 +116,7 @@ with st.expander("💡 Login Utilization % Explained (click to expand)"):
     - Otherwise: Balanced
 
 ⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
-    """)
+        """)
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
@@ -160,17 +161,15 @@ with st.expander("💡 Login Utilization % Explained (click to expand)"):
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # =========== 🌧️ RAIN PARTICIPATION SECTION ==============
+    # =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
-
-    st.info(
-        "💡 **Rain Participation Logic:**\n"
-        "- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.\n"
-        "- **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)\n"
-        "- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.",
-        icon="ℹ️"
-    )
+    with st.expander("💡 Rain Participation Logic (click to expand)"):
+        st.markdown("""
+- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.
+- **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)
+- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.
+        """)
 
     LOOKBACK_DAYS = 7
     PARTICIPATION_THRESHOLD = 0.8  # 80%
@@ -342,7 +341,6 @@ with st.expander("💡 Login Utilization % Explained (click to expand)"):
 
     # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
     st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
-
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
