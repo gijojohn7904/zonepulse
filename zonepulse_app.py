@@ -137,7 +137,75 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    # ---------------------- 🌧️ DEDICATED RAIN ANALYSIS SECTION ----------------------
+    st.markdown("---")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE level)")
+    LOOKBACK_DAYS = 14
+    rain_flag_col = "RAIN_FLAG"
+
+    if rain_flag_col not in df.columns:
+        st.warning("No RAIN_FLAG column in uploaded file. Please include rain flag for this analysis.")
+    else:
+        rain_dates = sorted(df.loc[df[rain_flag_col] == 1, "DT"].unique())
+        if not rain_dates:
+            st.warning("No rain dates found in the selected period!")
+        else:
+            selected_rain_date = st.selectbox(
+                "🌧️ Select Rain Date for Rain Analytics Section",
+                rain_dates,
+                format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
+            )
+            rain_day_df = df[df["DT"] == selected_rain_date]
+
+            # --- Zone Participation for selected date
+            st.markdown(f"### 📊 Rain Participation – {pd.to_datetime(selected_rain_date).strftime('%b %d, %Y')}")
+            zone_participation = []
+            for zone, city in rain_day_df[["ZONE", "CITY"]].drop_duplicates().values:
+                zone_df = df[(df["ZONE"] == zone) & (df["CITY"] == city)]
+                lookback_start = pd.to_datetime(selected_rain_date) - pd.Timedelta(days=LOOKBACK_DAYS)
+                base_DEs = zone_df[(zone_df["DT"] >= lookback_start.date()) & (zone_df["DT"] < selected_rain_date)]["DE_ID"].unique()
+                rain_DEs = rain_day_df[(rain_day_df["ZONE"] == zone) & (rain_day_df["CITY"] == city) & (rain_day_df[rain_flag_col] == 1) & (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"].unique()
+                rate = (len(rain_DEs) / len(base_DEs)) * 100 if len(base_DEs) else np.nan
+                zone_participation.append({
+                    "Zone": zone, "City": city, "Base_Actives": len(base_DEs),
+                    "Rain_Logins": len(rain_DEs),
+                    "Rain_Participation_%": round(rate, 2) if not np.isnan(rate) else None
+                })
+            zone_part_df = pd.DataFrame(zone_participation)
+            st.dataframe(zone_part_df)
+            st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
+
+            # --- Rain Skippers/Leaderboard for selected date
+            st.markdown("### ⛔ Rain Skippers (Active but Skipped This Rain Day)")
+            lookback_ids = df[df["DT"] < selected_rain_date].sort_values("DT").tail(LOOKBACK_DAYS)["DE_ID"].unique()
+            skippers = []
+            for de in lookback_ids:
+                de_rows = df[df["DE_ID"] == de]
+                was_active = (de_rows[de_rows["DT"] < selected_rain_date]["TOTAL LOGIN MINS"] > 0).any()
+                rain_logged = (rain_day_df[(rain_day_df["DE_ID"] == de) & (rain_day_df[rain_flag_col] == 1) & (rain_day_df["TOTAL LOGIN MINS"] > 0)]).shape[0]
+                if was_active and rain_logged == 0:
+                    skippers.append({
+                        "DE_ID": de,
+                        "DE_NAME": de_rows["DE_NAME"].iloc[0] if "DE_NAME" in de_rows.columns else "",
+                        "Zone": de_rows["ZONE"].iloc[0] if "ZONE" in de_rows.columns else "",
+                        "City": de_rows["CITY"].iloc[0] if "CITY" in de_rows.columns else "",
+                        "Last_Login_Before_Rain": de_rows[de_rows["DT"] < selected_rain_date]["DT"].max()
+                    })
+            skippers_df = pd.DataFrame(skippers)
+            st.dataframe(skippers_df)
+            st.download_button("📥 Download Rain Skippers (CSV)", data=skippers_df.to_csv(index=False), file_name="rain_skippers.csv")
+
+            # --- Rain Heroes Leaderboard
+            st.markdown("### 🏅 Rain Heroes (Top Logins This Rain Day)")
+            heroes = rain_day_df[(rain_day_df[rain_flag_col] == 1) & (rain_day_df["TOTAL LOGIN MINS"] > 0)]
+            heroes_leaderboard = heroes.groupby(["DE_ID", "DE_NAME", "ZONE", "CITY"])["TOTAL LOGIN MINS"].sum().reset_index()
+            heroes_leaderboard = heroes_leaderboard.sort_values(by="TOTAL LOGIN MINS", ascending=False).head(10)
+            st.dataframe(heroes_leaderboard)
+            st.download_button("📥 Download Rain Heroes (CSV)", data=heroes_leaderboard.to_csv(index=False), file_name="rain_heroes.csv")
+
+    # ---------------------- REST OF YOUR APP (UNCHANGED) ----------------------
+
+    # --- Date-wise Login Count ---
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
@@ -186,9 +254,8 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
-    # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
+    # --- Hourly Login Distribution ---
     st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
-
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
@@ -249,7 +316,7 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
+    # --- DEs Logged In Per Day Table ---
     st.markdown("#### 🔎 DEs Logged In Per Day")
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
@@ -269,7 +336,7 @@ if uploaded_file:
         mime="text/csv"
     )
 
-    # ---------------------- ATTRITION RISK DES ----------------------
+    # --- Attrition Risk DEs ---
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
@@ -285,7 +352,7 @@ if uploaded_file:
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
-    # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
+    # --- Individual DE-wise View ---
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
@@ -400,7 +467,7 @@ if uploaded_file:
             else:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-    # ---------------------- NO SHOW DEs ----------------------
+    # --- No Show DEs ---
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
     with col_prev:
@@ -437,5 +504,3 @@ if uploaded_file:
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
-
-
