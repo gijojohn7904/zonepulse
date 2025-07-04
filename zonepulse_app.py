@@ -118,7 +118,7 @@ if uploaded_file:
             hour_df = df[df[lh_col] > 10]
             if hour_df.empty:
                 continue
-            zone_group = hour_df.groupby("ZONE").agg(
+            zone_group = hour_df.groupby(["ZONE", "CITY"]).agg(
                 Total_Orders=(fd_col, 'sum'),
                 Avg_Orders=(fd_col, 'mean'),
                 Avg_Login_Mins=(lh_col, 'mean'),
@@ -145,7 +145,7 @@ if uploaded_file:
             hourly_data.append(zone_group)
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
-        st.dataframe(zone_hour_df.sort_values(by=["ZONE", "Hour"]))
+        st.dataframe(zone_hour_df.sort_values(by=["CITY", "ZONE", "Hour"]))
     else:
         st.info("No hourly data available for the selected filters.")
 
@@ -171,7 +171,7 @@ if uploaded_file:
             st.altair_chart(bar, use_container_width=True)
 
             # DE login detail table
-            de_cols = ["DT", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
+            de_cols = ["DT", "CITY", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
             if "REJECTED_ORDERS" in df.columns:
                 de_cols.append("REJECTED_ORDERS")
             if "DAILY_EARNINGS" in df.columns:
@@ -180,7 +180,7 @@ if uploaded_file:
             de_login_data = (
                 zone_filtered[zone_filtered["TOTAL LOGIN MINS"] > 0]
                 .loc[:, de_cols]
-                .sort_values(["DT", "DE_ID"])
+                .sort_values(["DT", "CITY", "DE_ID"])
             )
 
             st.markdown("#### 🔎 DEs Logged In Per Day")
@@ -198,7 +198,7 @@ if uploaded_file:
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
-    churn_cols = ["DE_ID", "DE_NAME", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
+    churn_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         churn_cols.append("REJECTED_ORDERS")
     if "DAILY_EARNINGS" in df.columns:
@@ -206,7 +206,7 @@ if uploaded_file:
     if churn_df.empty:
         st.info("✅ No churn risk DEs found for the selected filters.")
     else:
-        st.dataframe(churn_df[churn_cols].sort_values(by=["ZONE", "DT", "DE_NAME"]))
+        st.dataframe(churn_df[churn_cols].sort_values(by=["CITY", "ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
@@ -352,7 +352,7 @@ if uploaded_file:
             summary_df["Total_Login_Hrs"] = (summary_df["Total_Login_Mins"] / 60).round(2)
             summary_df["Earnings"] = summary_df["Earnings"].round(2)
             display_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "Last_Seen_DT", "Total_Login_Hrs", "Total_Orders", "Earnings"]
-            st.dataframe(summary_df[display_cols].sort_values(by="Last_Seen_DT", ascending=False))
+            st.dataframe(summary_df[display_cols].sort_values(by=["CITY", "ZONE", "Last_Seen_DT"], ascending=False))
             st.download_button("📅 Download No-Show DEs", data=summary_df[display_cols].to_csv(index=False),
                                file_name="no_show_des.csv", mime="text/csv")
         else:
