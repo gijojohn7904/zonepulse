@@ -95,6 +95,31 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
+    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
+st.info(
+    "💡 **Login Utilization % Explained:**\n"
+    "- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.\n"
+    "- Measures how efficiently active DEs are utilized each hour.\n"
+    "\n"
+    "**Interpretation:**\n"
+    "- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.\n"
+    "- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.\n"
+    "\n"
+    "**Thresholds:**\n"
+    "- **Instamart:**\n"
+    "    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%\n"
+    "    - Understaffed: Orders/hr > 2.2 & Utilization > 70%\n"
+    "    - Otherwise: Balanced\n"
+    "- **SwiggyFood:**\n"
+    "    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%\n"
+    "    - Understaffed: Orders/hr > 1.2 & Utilization > 57%\n"
+    "    - Otherwise: Balanced\n"
+    "\n"
+    "⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.",
+    icon="ℹ️"
+)
+
+
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
     hourly_data = []
