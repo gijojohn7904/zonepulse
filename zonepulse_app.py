@@ -248,28 +248,38 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-    # ---------------------- DEs Logged In Per Day (with peaks) ----------------------
-    st.markdown("#### 🔎 DEs Logged In Per Day")
-    de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
-    if "REJECTED_ORDERS" in df.columns:
-        de_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in df.columns:
-        de_cols.append("DAILY_EARNINGS")
-    for peak in ["BP", "LP", "SP", "DP", "LNP"]:
-        if peak in df.columns:
-            de_cols.append(peak)
-    de_login_data = (
-        df[df["TOTAL LOGIN MINS"] > 0]
-        .loc[:, [c for c in de_cols if c in df.columns]]
-        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-    )
-    st.dataframe(de_login_data, use_container_width=True)
-    st.download_button(
-        "📥 Download DE Login Detail (CSV)",
-        data=de_login_data.to_csv(index=False),
-        file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
-        mime="text/csv"
-    )
+# ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
+st.markdown("#### 🔎 DEs Logged In Per Day")
+
+# These are your standard peak columns in the order you want
+all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
+
+# Ensure all peak columns exist in DataFrame (fill missing with 0)
+for col in all_peak_cols:
+    if col not in df.columns:
+        df[col] = 0
+
+# Build columns to show in the order you want
+de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
+if "REJECTED_ORDERS" in df.columns:
+    de_cols.append("REJECTED_ORDERS")
+if "DAILY_EARNINGS" in df.columns:
+    de_cols.append("DAILY_EARNINGS")
+de_cols += all_peak_cols  # Add peaks at the end
+
+# Only keep columns present (safe for any dataset)
+de_login_data = (
+    df[df["TOTAL LOGIN MINS"] > 0]
+    .loc[:, [c for c in de_cols if c in df.columns]]
+    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+)
+st.dataframe(de_login_data, use_container_width=True)
+st.download_button(
+    "📥 Download DE Login Detail (CSV)",
+    data=de_login_data.to_csv(index=False),
+    file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
+    mime="text/csv"
+)
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
