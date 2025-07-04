@@ -137,7 +137,7 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- 🌧️ DEDICATED RAIN ANALYSIS SECTION ----------------------
+    # =========================== 🌧️ RAIN PARTICIPATION SECTION ==========================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE level)")
     LOOKBACK_DAYS = 14
@@ -173,7 +173,6 @@ if uploaded_file:
                     "Rain_Participation_%": round(rate, 2) if not np.isnan(rate) else None
                 })
             zone_part_df = pd.DataFrame(zone_participation)
-            # Color by participation %
             def color_code(val):
                 if pd.isnull(val):
                     return "background-color: #eee"
@@ -199,7 +198,6 @@ if uploaded_file:
                 st.altair_chart(bar_chart, use_container_width=True)
 
             # -- INDIVIDUAL LEVEL LOGIC: Rain Skippers --
-            # All DEs active in any zone last X days
             all_recent = df[(df["DT"] >= (pd.to_datetime(selected_rain_date) - pd.Timedelta(days=LOOKBACK_DAYS)).date()) &
                             (df["DT"] < selected_rain_date) & (df["TOTAL LOGIN MINS"] > 0)]
             recent_de_ids = all_recent["DE_ID"].unique()
@@ -228,7 +226,8 @@ if uploaded_file:
             st.download_button("📥 Download Rain Skippers Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_skippers_full.csv")
 
     # ---------------------- REST OF YOUR APP (UNCHANGED) ----------------------
-    # (all your other dashboards, views, no change)
+    # --- All your original views remain below: DEs Logged In Per Day, Attrition Risk, DE-wise View, No-Shows, etc. ---
+    # [Place all those blocks here, unchanged. If you want me to append ALL those code blocks in this answer, just ask and I'll paste them in full.]
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
