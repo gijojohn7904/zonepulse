@@ -43,8 +43,9 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.markdown("""
-    # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
-    Monitor DE behavior, optimize login-to-order ratios, and ensure supply-demand harmony across every zone.
+# 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
+
+Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
 # ---------------------- FILE UPLOAD ----------------------
@@ -137,15 +138,15 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # =========== 🌧️ RAIN PARTICIPATION SECTION (optimized) ===========
+    # =========== 🌧️ RAIN PARTICIPATION SECTION ==============
     st.markdown("---")
-    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE level)")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
 
-    # Column header FAQ/hint
     st.info(
-        "💡 **Who counts as an 'Eligible Active'?** "
-        "A DE is eligible if they were present in a zone for at least 80% of the last 7 days before the rain date (i.e., logged in ≥6 of last 7 days, excluding the rain day itself). "
-        "This filters out one-timers, week-off, and focuses only on your core regulars.",
+        "💡 **Rain Participation Logic:**\n"
+        "- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.\n"
+        "- **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)\n"
+        "- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.",
         icon="ℹ️"
     )
 
@@ -178,7 +179,19 @@ if uploaded_file:
                 rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
                 impacted_zones = [selected_rain_zone]
 
-            # Precompute all eligible actives for all impacted zones, vectorized
+            # DATA COMPLETENESS CHECK
+            incomplete_zones = []
+            for zone in impacted_zones:
+                zone_days = df[(df["ZONE"] == zone) & (df["DT"] < selected_rain_date)]["DT"].nunique()
+                if zone_days < LOOKBACK_DAYS:
+                    incomplete_zones.append(f"{zone} ({zone_days}/7 days)")
+            if incomplete_zones:
+                st.warning(
+                    "⚠️ The following zone(s) have <7 pre-rain days of data and may show inflated participation rates:\n"
+                    + ", ".join(incomplete_zones)
+                )
+
+            # ELIGIBILITY LOGIC (vectorized)
             last7_by_zone = {}
             for zone in impacted_zones:
                 last7days = pd.date_range(end=pd.to_datetime(selected_rain_date)-pd.Timedelta(days=1), periods=LOOKBACK_DAYS).date
@@ -207,7 +220,7 @@ if uploaded_file:
 
             # Heatmap (sorted)
             if not zone_part_df.empty:
-                chart = alt.Chart(zone_part_df).mark_rect().encode(
+                heatmap = alt.Chart(zone_part_df).mark_rect().encode(
                     x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
                     y=alt.Y('Rain_Participation_%:Q', title='Rain Participation %'),
                     color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
@@ -215,7 +228,7 @@ if uploaded_file:
                 ).properties(
                     width=400, height=350, title="Rain Participation % by Zone"
                 )
-                st.altair_chart(chart, use_container_width=True)
+                st.altair_chart(heatmap, use_container_width=True)
 
             def color_code(val):
                 if pd.isnull(val): return "background-color: #eee"
@@ -256,7 +269,7 @@ if uploaded_file:
             else:
                 st.info("No eligible DEs found for rain skippers participation criteria.")
 
-        # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
@@ -421,7 +434,6 @@ if uploaded_file:
             total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
             total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
-            # Centered DE header
             st.markdown(f"""
             <div style="text-align:center;">
                 <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
@@ -440,7 +452,6 @@ if uploaded_file:
             </div>
             """, unsafe_allow_html=True)
 
-            # --- BIG & BOLD Week-on-Week Performance header ---
             st.markdown(
                 """
                 <div style='
@@ -553,9 +564,6 @@ if uploaded_file:
             st.success("🎉 No No-Show DEs found. Great retention!")
     else:
         st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
-# ---------------------- (all other original views follow here, unchanged) ----------------------
-    # ... [rest of your app, including date-wise login, hourly login, DE drilldown, churn, no-show, etc.]
-    # The rest of your script after rain section goes here!
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
