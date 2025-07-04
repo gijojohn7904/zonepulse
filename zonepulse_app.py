@@ -32,6 +32,19 @@ def check_password():
 check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
+
+
+# Top of app
+col_logo, col_title = st.columns([1,6])
+with col_logo:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/1/12/Swiggy_logo.png", width=90)
+with col_title:
+    st.markdown("""
+    <h2 style='margin-bottom:0; color:#FF6600;'>ZonePulse – Swiggy Fleet Efficiency</h2>
+    <div style='font-size:1.1em; color:#555;'>Your Real-Time Ops Pulse for <b>Madurai • Tirupur • Pondy</b></div>
+    """, unsafe_allow_html=True)
+st.markdown("---")
+
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
