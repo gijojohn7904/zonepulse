@@ -8,7 +8,7 @@ def check_password():
     def password_entered():
         if st.session_state["password"] == st.secrets["auth"]["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]
+            del st.session_state["password"]  # Wipe after use
         else:
             st.session_state["password_correct"] = False
     if "password_correct" not in st.session_state:
@@ -29,7 +29,7 @@ def check_password():
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
-check_password()
+check_password()  # 🔒 Enforce password before running further
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
@@ -61,18 +61,6 @@ if uploaded_file:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
-    # ---------- VECTORISED PEAK FLAG CALCULATION ----------
-    lh_cols = [f"LH_{str(h).zfill(2)}" for h in range(24)]
-    for col in lh_cols:
-        if col not in df.columns:
-            df[col] = 0
-
-    df["BP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(7,12)]].gt(0).any(axis=1)).astype(int)
-    df["LP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(12,16)]].gt(0).any(axis=1)).astype(int)
-    df["SP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(16,19)]].gt(0).any(axis=1)).astype(int)
-    df["DP"]  = (df[[f"LH_{str(h).zfill(2)}" for h in range(19,24)]].gt(0).any(axis=1)).astype(int)
-    df["LNP"] = (df[[f"LH_{str(h).zfill(2)}" for h in range(0,7)]].gt(0).any(axis=1)).astype(int)
-
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
@@ -96,11 +84,11 @@ if uploaded_file:
         if selected_zone != "All":
             df = df[df["ZONE"] == selected_zone]
     with col4:
-        df["DT"] = pd.to_datetime(df["DT"])
-        min_date, max_date = df["DT"].dt.date.min(), df["DT"].dt.date.max()
+        df["DT"] = pd.to_datetime(df["DT"]).dt.date
+        min_date, max_date = df["DT"].min(), df["DT"].max()
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
-            df = df[(df["DT"].dt.date >= selected_dates[0]) & (df["DT"].dt.date <= selected_dates[1])]
+            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
 
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
@@ -149,7 +137,7 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- DATE-WISE LOGIN COUNT (LINE CHART) ----------------------
+    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
@@ -198,8 +186,9 @@ if uploaded_file:
         else:
             st.info("No login data for this city/zone selection.")
 
-    # ---------------------- HOURLY LOGIN DISTRIBUTION CHART ----------------------
+    # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
     st.markdown("#### ⏰ Hourly Login Distribution for Selected Zone")
+
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
@@ -260,28 +249,23 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-    # ---------------------- DEs Logged In Per Day (All Peak Columns) ----------------------
+    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
-    all_peak_cols = ["BP", "LP", "SP", "DP", "LNP"]
-
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
     if "DAILY_EARNINGS" in df.columns:
         de_cols.append("DAILY_EARNINGS")
-    de_cols += all_peak_cols
-
-    de_login_data = df[df["TOTAL LOGIN MINS"] > 0].copy()
-    de_login_data = de_login_data[[c for c in de_cols if c in de_login_data.columns]]
-    for col in all_peak_cols:
-        de_login_data[col] = de_login_data[col].astype(int)
-    de_login_data = de_login_data.sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-
+    de_login_data = (
+        df[df["TOTAL LOGIN MINS"] > 0]
+        .loc[:, [c for c in de_cols if c in df.columns]]
+        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+    )
     st.dataframe(de_login_data, use_container_width=True)
     st.download_button(
         "📥 Download DE Login Detail (CSV)",
         data=de_login_data.to_csv(index=False),
-        file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
+        file_name=f"{selected_zone}_datewise_login_DEs.csv",
         mime="text/csv"
     )
 
@@ -318,6 +302,7 @@ if uploaded_file:
             total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
             total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
 
+            # Centered DE header
             st.markdown(f"""
             <div style="text-align:center;">
                 <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
@@ -336,6 +321,7 @@ if uploaded_file:
             </div>
             """, unsafe_allow_html=True)
 
+            # --- BIG & BOLD Week-on-Week Performance header ---
             st.markdown(
                 """
                 <div style='
@@ -371,6 +357,7 @@ if uploaded_file:
                 ).properties(title=f"📊 {metric} by Week")
                 col.altair_chart(chart, use_container_width=True)
 
+            # --- Login Minutes vs Total Orders ---
             st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
             chart_df = de_data.sort_values("DT")
             base = alt.Chart(chart_df).encode(x="DT:T")
@@ -387,6 +374,7 @@ if uploaded_file:
                 use_container_width=True
             )
 
+            # --- Hourly Login vs Orders (Per Day) ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
             hourly_records = []
             for _, row in de_data.iterrows():
@@ -420,8 +408,8 @@ if uploaded_file:
     with col_curr:
         curr_dates = st.date_input("🗕️ Select Current Period", [])
     if len(prev_dates) == 2 and len(curr_dates) == 2:
-        prev_df = df[(df["DT"].dt.date >= prev_dates[0]) & (df["DT"].dt.date <= prev_dates[1])]
-        curr_df = df[(df["DT"].dt.date >= curr_dates[0]) & (df["DT"].dt.date <= curr_dates[1])]
+        prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
+        curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
         prev_logged_in = prev_df[prev_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
         curr_logged_in = curr_df[curr_df["TOTAL LOGIN MINS"] > 0]["DE_ID"].unique()
         no_show_ids = set(prev_logged_in) - set(curr_logged_in)
@@ -447,99 +435,7 @@ if uploaded_file:
     else:
         st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
 
-    # ---------------------- RAIN PARTICIPATION BLOCK ----------------------
-    LOOKBACK_DAYS = 14   # You can change lookback window here
-    rain_flag_col = "RAIN_FLAG"
-    if rain_flag_col not in df.columns:
-        st.warning("No RAIN_FLAG column in uploaded file. Please include rain flag for this analysis.")
-    else:
-        st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE level)")
-        df["DATE"] = df["DT"].dt.date
-        df = df.sort_values(["CITY", "ZONE", "DT"])
-        # --- Identify rain days per zone
-        rain_days_df = df[df[rain_flag_col] == 1][["ZONE", "CITY", "DATE"]].drop_duplicates()
-        rain_days = rain_days_df["DATE"].unique()
-        # --- Calculate zone-level recent actives (per day, per zone)
-        zone_participation = []
-        for zone, city in df[["ZONE", "CITY"]].drop_duplicates().values:
-            zone_df = df[(df["ZONE"] == zone) & (df["CITY"] == city)].copy()
-            zone_df["DATE"] = pd.to_datetime(zone_df["DATE"]).dt.date
-            for date in sorted(rain_days):
-                date_dt = pd.to_datetime(date).date()
-                lookback_start = date_dt - pd.Timedelta(days=LOOKBACK_DAYS)
-                lookback_start = pd.to_datetime(lookback_start).date()
-                base_DEs = zone_df[(zone_df["DATE"] >= lookback_start) & (zone_df["DATE"] < date_dt)]["DE_ID"].unique()
-                rain_DEs = zone_df[(zone_df["DATE"] == date_dt) & (zone_df[rain_flag_col] == 1) & (zone_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"].unique()
-                rate = (len(rain_DEs) / len(base_DEs)) * 100 if len(base_DEs) else np.nan
-                zone_participation.append({
-                    "Zone": zone, "City": city, "Rain_Date": date_dt,
-                    "Base_Actives": len(base_DEs),
-                    "Rain_Logins": len(rain_DEs),
-                    "Rain_Participation_%": round(rate, 2) if not np.isnan(rate) else None
-                })
-        zone_part_df = pd.DataFrame(zone_participation)
-
-        # --- Heatmap: Rain Participation by Zone/Date
-        if not zone_part_df.empty:
-            st.markdown("### 🗺️ Rain Participation Heatmap (Zone x Date)")
-            heatmap = alt.Chart(zone_part_df).mark_rect().encode(
-                x=alt.X('Zone:N', title='Zone', sort='ascending'),
-                y=alt.Y('Rain_Date:T', title='Rain Date'),
-                color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0,100]), legend=alt.Legend(title='Participation %')),
-                tooltip=['Zone', 'City', 'Rain_Date', 'Base_Actives', 'Rain_Logins', 'Rain_Participation_%']
-            ).properties(
-                width=800, height=400, title="Rain Participation % by Zone & Date"
-            )
-            st.altair_chart(heatmap, use_container_width=True)
-            st.dataframe(zone_part_df.sort_values(['Rain_Date', 'City', 'Zone']))
-            st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
-
-        # --- DE-Level Rain Skippers
-        st.markdown("### ⛔ Rain Skippers (Active but Skipped Rain Days)")
-        recent_actives = df[df["DATE"] >= (df["DATE"].max() - pd.Timedelta(days=LOOKBACK_DAYS))]["DE_ID"].unique()
-        rain_skip_data = []
-        for de in recent_actives:
-            de_rows = df[df["DE_ID"] == de]
-            zones = de_rows["ZONE"].unique()
-            cities = de_rows["CITY"].unique()
-            was_active = len(de_rows[de_rows["TOTAL LOGIN MINS"] > 0]) > 0
-            rain_login_days = de_rows[(de_rows[rain_flag_col] == 1) & (de_rows["TOTAL LOGIN MINS"] > 0)]["DATE"].nunique()
-            total_rain_days = de_rows[de_rows[rain_flag_col] == 1]["DATE"].nunique()
-            rain_skip = "Yes" if (was_active and rain_login_days == 0 and total_rain_days > 0) else "No"
-            last_login = de_rows[de_rows["TOTAL LOGIN MINS"] > 0]["DATE"].max() if was_active else None
-            rain_skip_data.append({
-                "DE_ID": de,
-                "DE_NAME": de_rows["DE_NAME"].iloc[0] if "DE_NAME" in de_rows.columns else "",
-                "Zone(s)": ', '.join(zones),
-                "City(s)": ', '.join(cities),
-                "Was_Active_Last_14d": was_active,
-                "Rain_Login_Days": rain_login_days,
-                "Rain_Skipper": rain_skip,
-                "Last_Login_Date": last_login,
-            })
-        rain_skip_df = pd.DataFrame(rain_skip_data)
-        skippers = rain_skip_df[rain_skip_df["Rain_Skipper"] == "Yes"]
-        st.dataframe(skippers)
-        st.download_button("📥 Download Rain Skippers (CSV)", data=skippers.to_csv(index=False), file_name="rain_skippers.csv")
-
-        # --- Rain Heroes Leaderboard
-        st.markdown("### 🏅 Rain Heroes (Top Rain Logins)")
-        rain_heroes = rain_skip_df.sort_values(by="Rain_Login_Days", ascending=False).head(10)
-        st.dataframe(rain_heroes)
-        st.download_button("📥 Download Rain Heroes (CSV)", data=rain_heroes.to_csv(index=False), file_name="rain_heroes.csv")
-
-        # --- Zone Rain Participation Trend Chart
-        st.markdown("### 📊 Rain Participation Trend (by Zone)")
-        if not zone_part_df.empty:
-            trend = alt.Chart(zone_part_df).mark_line(point=True).encode(
-                x=alt.X('Rain_Date:T', title='Rain Date'),
-                y=alt.Y('Rain_Participation_%:Q', title='Participation %'),
-                color=alt.Color('Zone:N', legend=alt.Legend(title='Zone')),
-                tooltip=['Zone', 'City', 'Rain_Date', 'Rain_Participation_%']
-            ).properties(height=350)
-            st.altair_chart(trend, use_container_width=True)
-
-        st.success("Rain participation analytics ready. Time to chase the laggards and celebrate your rain heroes! 🚀")
-
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
+
+
