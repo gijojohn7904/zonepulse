@@ -249,25 +249,39 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
-    st.markdown("#### 🔎 DEs Logged In Per Day")
-    de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
-    if "REJECTED_ORDERS" in df.columns:
-        de_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in df.columns:
-        de_cols.append("DAILY_EARNINGS")
-    de_login_data = (
-        df[df["TOTAL LOGIN MINS"] > 0]
-        .loc[:, [c for c in de_cols if c in df.columns]]
-        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-    )
-    st.dataframe(de_login_data, use_container_width=True)
-    st.download_button(
-        "📥 Download DE Login Detail (CSV)",
-        data=de_login_data.to_csv(index=False),
-        file_name=f"{selected_zone}_datewise_login_DEs.csv",
-        mime="text/csv"
-    )
+# ---------------------- DEs Logged In Per Day TABLE (with peak flags) ----------------------
+
+st.markdown("#### 🔎 DEs Logged In Per Day")
+
+# Core columns
+de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
+
+# Optional columns if present
+if "REJECTED_ORDERS" in df.columns:
+    de_cols.append("REJECTED_ORDERS")
+if "DAILY_EARNINGS" in df.columns:
+    de_cols.append("DAILY_EARNINGS")
+
+# Add all peak flags if present
+for peak in ["BP", "LP", "SP", "DP", "LNP"]:
+    if peak in df.columns:
+        de_cols.append(peak)
+
+# Build the table
+de_login_data = (
+    df[df["TOTAL LOGIN MINS"] > 0]
+    .loc[:, [c for c in de_cols if c in df.columns]]
+    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+)
+
+st.dataframe(de_login_data, use_container_width=True)
+st.download_button(
+    "📥 Download DE Login Detail (CSV)",
+    data=de_login_data.to_csv(index=False),
+    file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_DEs.csv",
+    mime="text/csv"
+)
+
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
