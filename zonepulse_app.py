@@ -137,72 +137,62 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
-    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
-    if not zone_hour_df.empty:
-        # Only loop for valid combos in zone_hour_df
-        login_chart_rows = []
-        zone_hour_df["DT"] = pd.to_datetime(zone_hour_df["DT"]).dt.date  # Defensive
-        unique_rows = zone_hour_df[["DT", "CITY", "ZONE"]].drop_duplicates()
-        for _, r in unique_rows.iterrows():
-            dt = r["DT"]
-            city = r["CITY"]
-            zone = r["ZONE"]
-            hours = zone_hour_df[(zone_hour_df["DT"] == dt) & (zone_hour_df["ZONE"] == zone) & (zone_hour_df["CITY"] == city)]
-            hour_status_list = [f"Hour {h}: {rec}" for h, rec in zip(hours["Hour"], hours["Recommendation"])]
-            count_under = sum("Understaffed" in rec for rec in hours["Recommendation"])
-            count_over = sum("Overstaffed" in rec for rec in hours["Recommendation"])
-            count_bal = sum("Balanced" in rec for rec in hours["Recommendation"])
-            n_hours = count_under + count_over + count_bal
-            if n_hours == 0:
-                maj_status = "No Data"
-            elif count_under > 12:
-                maj_status = "Understaffed"
-            elif count_over > 12:
-                maj_status = "Overstaffed"
-            else:
-                maj_status = "Balanced"
-            n_logged_in = df[
-                (df["DT"] == dt) &
-                (df["ZONE"] == zone) &
-                (df["CITY"] == city) &
-                (df["TOTAL LOGIN MINS"] > 0)
-            ]["DE_ID"].nunique()
-            login_chart_rows.append({
-                "DT": dt,
-                "CITY": city,
-                "ZONE": zone,
-                "Login Count": n_logged_in,
-                "Day Status": maj_status,
-                "Hourly Detail": "\n".join(hour_status_list)
-            })
-        chart_df = pd.DataFrame(login_chart_rows)
-        chart_df = chart_df[(chart_df["Login Count"] > 0) & (chart_df["Day Status"] != "No Data")]
-        if not chart_df.empty:
-            chart = alt.Chart(chart_df).mark_line(point={"filled": True, "size": 90}).encode(
-                x=alt.X("DT:T", title="Date"),
-                y=alt.Y("Login Count", title="No. of DEs Logged In"),
-                color=alt.Color("Day Status:N", legend=alt.Legend(title="Staffing Status")),
-                tooltip=[
-                    alt.Tooltip("DT:T", title="Date"),
-                    alt.Tooltip("CITY", title="City"),
-                    alt.Tooltip("ZONE", title="Zone"),
-                    alt.Tooltip("Login Count", title="DEs Logged In"),
-                    alt.Tooltip("Day Status", title="Day Status"),
-                    alt.Tooltip("Hourly Detail", title="Hour-wise Status", format="string")
-                ]
-            ).properties(
-                title=f"Login Count per Day – {selected_zone if selected_zone != 'All' else 'All Zones'}"
-            ).interactive()
-            st.altair_chart(chart, use_container_width=True)
-            st.download_button(
-                "📥 Download Login Status Detail (CSV)",
-                data=chart_df.to_csv(index=False),
-                file_name=f"{selected_zone if selected_zone != 'All' else 'All'}_{selected_city if selected_city != 'All' else 'All'}_datewise_login_status.csv",
-                mime="text/csv"
-            )
+# ---------------------- DATE-WISE LOGIN COUNT (SIMPLE, WORKING) ----------------------
+st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+
+if not df.empty:
+    # Build the filtered DataFrame by current city/zone selection
+    filter_mask = (df["TOTAL LOGIN MINS"] > 0)
+    if selected_city != "All":
+        filter_mask &= (df["CITY"] == selected_city)
+    if selected_zone != "All":
+        filter_mask &= (df["ZONE"] == selected_zone)
+    filtered_df = df[filter_mask].copy()
+    
+    # Group: Get count of unique DEs per day, per zone
+    login_counts = (
+        filtered_df.groupby(["DT", "ZONE"])
+        .agg(Login_Count=('DE_ID', 'nunique'))
+        .reset_index()
+    )
+    # Use the selected zone for the chart
+    if selected_zone == "All":
+        # If All, show for first available zone (or let user pick)
+        chart_zones = login_counts["ZONE"].unique()
+        if len(chart_zones) == 0:
+            st.info("No data for the selected filters.")
+            login_counts = pd.DataFrame()
         else:
-            st.info("No login or staffing data for this selection.")
+            show_zone = chart_zones[0]  # Pick first
+            st.info(f"Showing chart for zone: {show_zone} (change filter for others)")
+            login_counts = login_counts[login_counts["ZONE"] == show_zone]
+    else:
+        show_zone = selected_zone
+        login_counts = login_counts[login_counts["ZONE"] == show_zone]
+
+    if not login_counts.empty:
+        chart = alt.Chart(login_counts).mark_line(point=True).encode(
+            x=alt.X("DT:T", title="Date"),
+            y=alt.Y("Login_Count", title="No. of DEs Logged In"),
+            tooltip=[
+                alt.Tooltip("DT:T", title="Date"),
+                alt.Tooltip("Login_Count", title="Active DE Count"),
+                alt.Tooltip("ZONE", title="Zone")
+            ]
+        ).properties(
+            title=f"Login Count per Day – {show_zone}"
+        ).interactive()
+        st.altair_chart(chart, use_container_width=True)
+        st.download_button(
+            "📥 Download Login Count (CSV)",
+            data=login_counts.to_csv(index=False),
+            file_name=f"{show_zone}_datewise_login_count.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No login data for this city/zone selection.")
+
+
 
 
         # Table of DEs logged in per day
