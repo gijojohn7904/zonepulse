@@ -17,7 +17,7 @@ def check_password():
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the Sourcing & Onboarding team.
         """, unsafe_allow_html=True)
-        st.text_input("Enter password", type="password", on_change=password_entered, key="password")
+        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.stop()
     elif not st.session_state["password_correct"]:
         st.markdown("""
@@ -25,8 +25,8 @@ def check_password():
         This tool is for **Swiggy internal use only**.<br>
         Please enter the access password provided by the S&O team.
         """, unsafe_allow_html=True)
-        st.text_input("Enter password", type="password", on_change=password_entered, key="password")
-        st.error("Incorrect password. Please try again.")
+        st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
+        st.error("❌ Incorrect password. Please try again.")
         st.stop()
 
 check_password()
@@ -34,29 +34,8 @@ check_password()
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
-    <style>
-    [data-testid="stExpander"] {
-        background-color: #e6f2ff !important;
-        border-radius: 8px !important;
-        border: 1.5px solid #b3d8fd !important;
-        box-shadow: none !important;
-    }
-    [data-testid="stExpander"] > div {
-        background-color: #e6f2ff !important;
-        border-radius: 8px !important;
-    }
-    [data-testid="stExpander"] button {
-        background-color: #e6f2ff !important;
-        color: #1b2838 !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
-    <b>Confidentiality Notice by Swiggy:</b><br>
+    <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
     This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
     Sharing, reproducing, or distributing this content outside the organization is <b>not permitted</b>.<br>
     Please handle this information responsibly, in accordance with company data policies.
@@ -64,76 +43,83 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.markdown("""
-# Fleet Efficiency & Attrition Risk Monitor | Swiggy
+# 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
 
-Get zone-by-zone clarity on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—rain or shine.
+Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
 # ---------------------- FILE UPLOAD ----------------------
-uploaded_file = st.file_uploader("Upload your DE Order vs Login File", type=["csv"])
+uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip().str.upper()
     if "CITY" not in df.columns or "ZONE" not in df.columns:
         st.error("Missing CITY or ZONE column in file.")
         st.stop()
+
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
-        st.error("Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
+        st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
+
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
+
     # ------ FILTERS ------
     col1, col2 = st.columns(2)
     with col1:
-        vertical = st.selectbox(
-            "Select Vertical (Food or Instamart)",
-            ["SwiggyFood", "Instamart"],
-            help="Filter the data by vertical—see only SwiggyFood or Instamart DEs."
-        )
+        vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
         df = df[df["VERTICAL"] == vertical]
     with col2:
         cities = sorted(df["CITY"].dropna().unique())
         city_options = ["All"] + list(cities)
-        selected_city = st.selectbox(
-            "Select City (Filter Data by City)",
-            city_options,
-            help="Filter the dataset to a single city or see all."
-        )
+        selected_city = st.selectbox("🏩 Choose City", city_options)
         if selected_city != "All":
             df = df[df["CITY"] == selected_city]
+
     col3, col4 = st.columns(2)
     with col3:
         zones = sorted(df["ZONE"].dropna().unique())
         zone_options = ["All"] + list(zones)
-        selected_zone = st.selectbox(
-            "Select Zone (Drilldown by Zone)",
-            zone_options,
-            help="See zone-level analysis or aggregate view for all."
-        )
+        selected_zone = st.selectbox("📍 Choose Zone", zone_options)
         if selected_zone != "All":
             df = df[df["ZONE"] == selected_zone]
     with col4:
         df["DT"] = pd.to_datetime(df["DT"]).dt.date
         min_date, max_date = df["DT"].min(), df["DT"].max()
-        selected_dates = st.date_input(
-            "Select Date Range (Filter by Date)",
-            [min_date, max_date],
-            help="Analyze data for a specific date range."
-        )
+        selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-    with st.expander("Zone-Level Hourly Report – What does it show?", expanded=False):
+    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
+    with st.expander("💡 Login Utilization % Explained (click to expand)"):
         st.markdown("""
-Shows active DEs, orders, login mins by zone and hour. Spot over/understaffing.  
-**Action:** Cut idle supply or ramp up hiring based on real demand/utilization per hour.
-""")
-    st.markdown("## Zone-Level Hourly Report")
+- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
+- Measures how efficiently active DEs are utilized each hour.
+
+**Interpretation:**
+- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
+- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
+
+**Thresholds:**
+- **Instamart:**
+    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%
+    - Understaffed: Orders/hr > 2.2 & Utilization > 70%
+    - Otherwise: Balanced
+- **SwiggyFood:**
+    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%
+    - Understaffed: Orders/hr > 1.2 & Utilization > 57%
+    - Otherwise: Balanced
+
+⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
+        """)
+
+    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+    st.markdown("## 📊 Zone-Level Hourly Report")
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -154,37 +140,40 @@ Shows active DEs, orders, login mins by zone and hour. Spot over/understaffing.
             )
             if vertical == "Instamart":
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
-                    else "Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
-                    else "Balanced",
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
+                    else "✅ Balanced",
                     axis=1
                 )
             else:
                 zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
-                    else "Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
-                    else "Balanced",
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
+                    else "✅ Balanced",
                     axis=1
                 )
             hourly_data.append(zone_group)
     if hourly_data:
         zone_hour_df = pd.concat(hourly_data)
         st.dataframe(zone_hour_df.sort_values(by=["DT", "CITY", "ZONE", "Hour"]))
-        st.download_button("Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
+        st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
     else:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ---------------------- RAIN PARTICIPATION ANALYSIS ----------------------
-    with st.expander("Rain Participation Analysis – What's the big deal?", expanded=False):
-        st.markdown("""
-Shows which DEs logged in and worked on rain-impacted days.  
-**Action:** Spot reliable 'core' DEs vs. fair-weather DEs.
-""")
+    # =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
     st.markdown("---")
-    st.markdown("## Rain Participation Analysis (Zone & DE Level)")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
+    with st.expander("💡 Rain Participation Logic (click to expand)"):
+        st.markdown("""
+- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.
+- **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)
+- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.
+        """)
+
     LOOKBACK_DAYS = 7
     PARTICIPATION_THRESHOLD = 0.8  # 80%
+
     rain_flag_col = "RAIN_FLAG"
     if rain_flag_col not in df.columns:
         st.warning("No RAIN_FLAG column in uploaded file. Please include rain flag for this analysis.")
@@ -196,23 +185,22 @@ Shows which DEs logged in and worked on rain-impacted days.
             col_rain, col_zone = st.columns(2)
             with col_rain:
                 selected_rain_date = st.selectbox(
-                    "Select Rain Date (Analyze Rain Impact)",
+                    "🌧️ Select Rain Date",
                     rain_dates,
-                    help="Pick a rain-impacted day for zone and DE participation analysis."
+                    format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
                 )
+
             impacted_zones = df[(df["DT"] == selected_rain_date) & (df[rain_flag_col] == 1)]["ZONE"].unique()
             impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
             with col_zone:
                 zone_options = ["All"] + list(impacted_zones)
-                selected_rain_zone = st.selectbox(
-                    "Select Zone (Rain Impacted Only)",
-                    zone_options,
-                    help="Narrow down to a rain-impacted zone or see all together."
-                )
+                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
             rain_day_df = df[(df["DT"] == selected_rain_date) & (df["ZONE"].isin(impacted_zones))]
             if selected_rain_zone != "All":
                 rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
                 impacted_zones = [selected_rain_zone]
+
+            # DATA COMPLETENESS CHECK
             incomplete_zones = []
             for zone in impacted_zones:
                 zone_days = df[(df["ZONE"] == zone) & (df["DT"] < selected_rain_date)]["DT"].nunique()
@@ -220,9 +208,11 @@ Shows which DEs logged in and worked on rain-impacted days.
                     incomplete_zones.append(f"{zone} ({zone_days}/7 days)")
             if incomplete_zones:
                 st.warning(
-                    "The following zone(s) have <7 pre-rain days of data and may show inflated participation rates:\n"
+                    "⚠️ The following zone(s) have <7 pre-rain days of data and may show inflated participation rates:\n"
                     + ", ".join(incomplete_zones)
                 )
+
+            # ELIGIBILITY LOGIC (vectorized)
             last7_by_zone = {}
             for zone in impacted_zones:
                 last7days = pd.date_range(end=pd.to_datetime(selected_rain_date)-pd.Timedelta(days=1), periods=LOOKBACK_DAYS).date
@@ -231,6 +221,7 @@ Shows which DEs logged in and worked on rain-impacted days.
                 count_days = df7.groupby("DE_ID")["DT"].nunique()
                 eligible = set(count_days[count_days >= int(PARTICIPATION_THRESHOLD*LOOKBACK_DAYS)].index)
                 last7_by_zone[zone] = eligible
+
             rain_part = []
             for zone in impacted_zones:
                 city = rain_day_df[rain_day_df["ZONE"] == zone]["CITY"].iloc[0] if not rain_day_df[rain_day_df["ZONE"] == zone].empty else ""
@@ -247,6 +238,8 @@ Shows which DEs logged in and worked on rain-impacted days.
                 })
             zone_part_df = pd.DataFrame(rain_part)
             zone_part_df = zone_part_df.sort_values(by="Rain_Participation_%", ascending=False)
+
+            # Heatmap (sorted)
             if not zone_part_df.empty:
                 heatmap = alt.Chart(zone_part_df).mark_rect().encode(
                     x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
@@ -257,13 +250,16 @@ Shows which DEs logged in and worked on rain-impacted days.
                     width=400, height=350, title="Rain Participation % by Zone"
                 )
                 st.altair_chart(heatmap, use_container_width=True)
+
             def color_code(val):
                 if pd.isnull(val): return "background-color: #eee"
                 elif val < 50: return "background-color: #ffcccc"
                 elif val < 80: return "background-color: #ffe699"
                 else: return "background-color: #c6efce"
             st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
-            st.download_button("Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
+            st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
+
+            # --- DE-Level Table (Vectorized, fast)
             all_de = []
             for zone in impacted_zones:
                 eligible_DEs = last7_by_zone[zone]
@@ -287,20 +283,15 @@ Shows which DEs logged in and worked on rain-impacted days.
                         "Rain_Skipper": rain_skip
                     })
             de_df = pd.DataFrame(all_de)
-            st.markdown("### DE-Level Rain Skippers Table")
+            st.markdown("### 🔎 DE-Level Rain Skippers Table")
             if not de_df.empty:
                 st.dataframe(de_df)
-                st.download_button("Download Rain Skippers Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_skippers_full.csv")
+                st.download_button("📥 Download Rain Skippers Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_skippers_full.csv")
             else:
                 st.info("No eligible DEs found for rain skippers participation criteria.")
 
-    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART) ----------------------
-    with st.expander("Date-wise Login Count – Why track this?", expanded=False):
-        st.markdown("""
-Shows total unique DEs logged in per day, by zone.  
-**Action:** Detect day-to-day supply drops, mass drop-offs, or weekend slumps.
-""")
-    st.markdown("## Date-wise Login Count for Selected Zone")
+    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
         if selected_city != "All":
@@ -308,6 +299,7 @@ Shows total unique DEs logged in per day, by zone.
         if selected_zone != "All":
             filter_mask &= (df["ZONE"] == selected_zone)
         filtered_df = df[filter_mask].copy()
+
         login_counts = (
             filtered_df.groupby(["DT", "ZONE"])
             .agg(Login_Count=('DE_ID', 'nunique'))
@@ -319,15 +311,12 @@ Shows total unique DEs logged in per day, by zone.
                 st.info("No data for the selected filters.")
                 login_counts = pd.DataFrame()
             else:
-                show_zone = st.selectbox(
-                    "Select Zone to Plot (Date-wise Login Trend)",
-                    sorted(chart_zones),
-                    help="Plot login trend for a specific zone."
-                )
+                show_zone = st.selectbox("Select Zone to Plot (for chart below):", sorted(chart_zones))
                 login_counts = login_counts[login_counts["ZONE"] == show_zone]
         else:
             show_zone = selected_zone
             login_counts = login_counts[login_counts["ZONE"] == show_zone]
+
         if not login_counts.empty:
             chart = alt.Chart(login_counts).mark_line(point=True).encode(
                 x=alt.X("DT:T", title="Date"),
@@ -342,7 +331,7 @@ Shows total unique DEs logged in per day, by zone.
             ).interactive()
             st.altair_chart(chart, use_container_width=True)
             st.download_button(
-                "Download Login Count (CSV)",
+                "📥 Download Login Count (CSV)",
                 data=login_counts.to_csv(index=False),
                 file_name=f"{show_zone}_datewise_login_count.csv",
                 mime="text/csv"
@@ -350,15 +339,11 @@ Shows total unique DEs logged in per day, by zone.
         else:
             st.info("No login data for this city/zone selection.")
 
-    # ---------------------- HOURLY LOGIN DISTRIBUTION ----------------------
-    with st.expander("Hourly Login Distribution – How does this help?", expanded=False):
-        st.markdown("""
-Visual breakdown of active DEs, order volume, and staffing status (under/overstaffed) for each hour.  
-**Action:** Pinpoint peaky/slack/balanced hours. Match hiring to real demand.
-""")
-    st.markdown("#### Zone-wise Hourly Login Distribution")
+    # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
+    st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
+
     if hourly_cols and not df.empty and not zone_hour_df.empty:
         hourly_df = df.copy()
         show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
@@ -369,6 +354,7 @@ Visual breakdown of active DEs, order volume, and staffing status (under/oversta
             hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
         elif show_zone is not None:
             hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]
+
         hour_data = []
         for hr in range(24):
             lh_col = f"LH_{str(hr).zfill(2)}"
@@ -381,7 +367,7 @@ Visual breakdown of active DEs, order volume, and staffing status (under/oversta
                     (zone_hour_df["ZONE"] == show_zone) &
                     (zone_hour_df["CITY"] == show_city)
                 ]
-                rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "Balanced"
+                rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "✅ Balanced"
                 hour_data.append({
                     "Hour": f"{str(hr).zfill(2)}:00",
                     "Active DEs": count,
@@ -389,10 +375,12 @@ Visual breakdown of active DEs, order volume, and staffing status (under/oversta
                     "Recommendation": rec
                 })
         hour_chart_df = pd.DataFrame(hour_data)
+
         color_scale = alt.Scale(
-            domain=["Understaffed", "Overstaffed", "Balanced"],
+            domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
             range=["#e53935", "#fb8c00", "#43a047"]
         )
+
         if not hour_chart_df.empty:
             bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
                 x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
@@ -414,12 +402,7 @@ Visual breakdown of active DEs, order volume, and staffing status (under/oversta
         st.info("No hourly login data available in uploaded file.")
 
     # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
-    with st.expander("DEs Logged In Per Day – Why drill down?", expanded=False):
-        st.markdown("""
-Full table of every DE who logged in each day—zone, city, orders, login mins, earnings, etc.  
-**Action:** Spot underperformers, idle DEs, or unexpected work patterns. Reward or investigate as needed.
-""")
-    st.markdown("#### DEs Logged In Per Day")
+    st.markdown("#### 🔎 DEs Logged In Per Day")
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
@@ -432,19 +415,14 @@ Full table of every DE who logged in each day—zone, city, orders, login mins, 
     )
     st.dataframe(de_login_data, use_container_width=True)
     st.download_button(
-        "Download DE Login Detail (CSV)",
+        "📥 Download DE Login Detail (CSV)",
         data=de_login_data.to_csv(index=False),
         file_name=f"{selected_zone}_datewise_login_DEs.csv",
         mime="text/csv"
     )
 
     # ---------------------- ATTRITION RISK DES ----------------------
-    with st.expander("Attrition Risk DEs – Who's likely to quit?", expanded=False):
-        st.markdown("""
-Flags DEs who spent 3+ hours logged in but took <2 orders in a day—classic disengagement/churn risk.  
-**Action:** Immediate follow-up to re-engage or route to busier zones.
-""")
-    st.markdown("## Attrition Risk DEs (Login > 3hr, Orders < 2)")
+    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
     churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
     churn_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
@@ -453,53 +431,47 @@ Flags DEs who spent 3+ hours logged in but took <2 orders in a day—classic dis
     if "DAILY_EARNINGS" in df.columns:
         churn_cols.append("DAILY_EARNINGS")
     if churn_df.empty:
-        st.info("No churn risk DEs found for the selected filters.")
+        st.info("✅ No churn risk DEs found for the selected filters.")
     else:
         st.dataframe(churn_df[churn_cols].sort_values(by=["CITY", "ZONE", "DT", "DE_NAME"]))
-        st.download_button("Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
+        st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
-    with st.expander("Individual DE-wise View – What's the story?", expanded=False):
-        st.markdown("""
-Deep-dive into a single DE’s journey: active days, login pattern, orders, earnings, rejections, week-wise trend.  
-**Action:** Investigate complaints, performance issues, or coach high-potential DEs.
-""")
-    st.markdown("## Individual DE-wise View")
+    st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox(
-            "Select DE ID (Explore Individual DE Performance)",
-            ["None"] + sorted(de_ids),
-            help="View a detailed breakdown for any single Delivery Executive."
-        )
+        selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
         if selected_de != "None":
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
             de_name = de_data['DE_NAME'].iloc[0]
             de_zone = de_data['ZONE'].iloc[0]
             de_city = de_data['CITY'].iloc[0]
+
             total_days = de_data.shape[0]
             total_login = de_data["TOTAL LOGIN MINS"].sum()
             total_orders = de_data["TOTAL ORDERS"].sum()
             total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
             total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+
             st.markdown(f"""
             <div style="text-align:center;">
                 <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
                     DE: {selected_de} – {de_name}
                 </div>
                 <div style="margin-bottom: 0.7em;">
-                    Zone: <b>{de_zone}</b> &nbsp; | &nbsp; City: <b>{de_city}</b>
+                    📍 Zone: <b>{de_zone}</b> &nbsp; | &nbsp; 🏣️ City: <b>{de_city}</b>
                 </div>
                 <div style="font-size:1.05em; background:#f8f9fa; border-radius:10px; display:inline-block; padding:10px 18px; box-shadow:0 2px 8px #eee;">
-                    Active Days: {total_days} &nbsp; | &nbsp; 
-                    Total Login Hrs: {round(total_login/60,2)} &nbsp; | &nbsp; 
-                    Total Orders: {int(total_orders)} &nbsp; | &nbsp; 
-                    Rejected Orders: {int(total_rejected)} &nbsp; | &nbsp; 
-                    Total Earnings: ₹{round(total_earnings,2)}
+                    🔕️ <b>Active Days:</b> {total_days} &nbsp; | &nbsp; 
+                    ⏱️ <b>Total Login Hrs:</b> {round(total_login/60,2)} &nbsp; | &nbsp; 
+                    🔵️ <b>Total Orders:</b> {int(total_orders)} &nbsp; | &nbsp; 
+                    ⛔ <b>Rejected Orders:</b> {int(total_rejected)} &nbsp; | &nbsp; 
+                    💸 <b>Total Earnings:</b> ₹{round(total_earnings,2)}
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
             st.markdown(
                 """
                 <div style='
@@ -511,7 +483,7 @@ Deep-dive into a single DE’s journey: active days, login pattern, orders, earn
                     letter-spacing:0.5px;
                     color:#1a1a1a;
                 '>
-                Week-on-Week Performance & Earnings
+                📈 Week-on-Week Performance & Earnings
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -532,9 +504,11 @@ Deep-dive into a single DE’s journey: active days, login pattern, orders, earn
                     x=alt.X("WEEK", sort=None),
                     y=alt.Y(metric, type="quantitative"),
                     tooltip=["WEEK", metric]
-                ).properties(title=f"{metric} by Week")
+                ).properties(title=f"📊 {metric} by Week")
                 col.altair_chart(chart, use_container_width=True)
-            st.markdown("### Login Minutes vs Total Orders Over Time")
+
+            # --- Login Minutes vs Total Orders ---
+            st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
             chart_df = de_data.sort_values("DT")
             base = alt.Chart(chart_df).encode(x="DT:T")
             login_line = base.mark_line(color="#1f77b4").encode(
@@ -549,7 +523,9 @@ Deep-dive into a single DE’s journey: active days, login pattern, orders, earn
                 alt.layer(login_line, order_line).resolve_scale(y="independent"),
                 use_container_width=True
             )
-            st.markdown("### Hourly Login vs Orders (Per Day)")
+
+            # --- Hourly Login vs Orders (Per Day) ---
+            st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
             hourly_records = []
             for _, row in de_data.iterrows():
                 date = row["DT"]
@@ -569,23 +545,18 @@ Deep-dive into a single DE’s journey: active days, login pattern, orders, earn
             if hourly_records:
                 hourly_df = pd.DataFrame(hourly_records)
                 st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
-                st.download_button("Download DE Hourly Log", data=hourly_df.to_csv(index=False),
+                st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False),
                                    file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
             else:
-                st.info("No hourly data found for this DE.")
+                st.info("ℹ️ No hourly data found for this DE.")
 
     # ---------------------- NO SHOW DEs ----------------------
-    with st.expander("No-Show DEs – Who ghosted this week?", expanded=False):
-        st.markdown("""
-Highlights DEs who were recently active but haven’t logged in during your chosen 'current' window.  
-**Action:** Call or visit to fix blockers—retain them before they're gone for good.
-""")
-    st.markdown("## No-Show DEs – Previously Active, Not Logged In Now")
+    st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
     with col_prev:
-        prev_dates = st.date_input("Select Previous Period (No-show Analysis)", [])
+        prev_dates = st.date_input("🗕️ Select Previous Period", [])
     with col_curr:
-        curr_dates = st.date_input("Select Current Period (No-show Analysis)", [])
+        curr_dates = st.date_input("🗕️ Select Current Period", [])
     if len(prev_dates) == 2 and len(curr_dates) == 2:
         prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
         curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
@@ -607,12 +578,15 @@ Highlights DEs who were recently active but haven’t logged in during your chos
             summary_df["Earnings"] = summary_df["Earnings"].round(2)
             display_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "Last_Seen_DT", "Total_Login_Hrs", "Total_Orders", "Earnings"]
             st.dataframe(summary_df[display_cols].sort_values(by="Last_Seen_DT", ascending=False))
-            st.download_button("Download No-Show DEs", data=summary_df[display_cols].to_csv(index=False),
+            st.download_button("📅 Download No-Show DEs", data=summary_df[display_cols].to_csv(index=False),
                                file_name="no_show_des.csv", mime="text/csv")
         else:
-            st.success("No No-Show DEs found. Great retention!")
+            st.success("🎉 No No-Show DEs found. Great retention!")
     else:
-        st.info("Select both Previous and Current Periods to identify no-shows.")
+        st.info("☝️ Select both Previous and Current Periods to identify no-shows.")
 
 else:
-    st.info("Upload your DE Order vs Login File to get started.")
+    st.info("👆 Upload your DE Order vs Login File to get started.")
+
+
+
