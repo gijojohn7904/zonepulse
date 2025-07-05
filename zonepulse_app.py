@@ -95,73 +95,10 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
-    with st.expander("💡 Login Utilization % Explained (click to expand)"):
-        st.markdown("""
-- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
-- Measures how efficiently active DEs are utilized each hour.
-
-**Interpretation:**
-- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
-- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
-
-**Thresholds:**
-- **Instamart:**
-    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%
-    - Understaffed: Orders/hr > 2.2 & Utilization > 70%
-    - Otherwise: Balanced
-- **SwiggyFood:**
-    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%
-    - Understaffed: Orders/hr > 1.2 & Utilization > 57%
-    - Otherwise: Balanced
-
-⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
-        """)
-
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    hourly_data = []
-    for hr in range(24):
-        fd_col = f"FD_{str(hr).zfill(2)}"
-        lh_col = f"LH_{str(hr).zfill(2)}"
-        if fd_col in df.columns and lh_col in df.columns:
-            hour_df = df[df[lh_col] > 10]
-            if hour_df.empty: continue
-            group_cols = ["DT", "CITY", "ZONE"]
-            zone_group = hour_df.groupby(group_cols).agg(
-                Total_Orders=(fd_col, 'sum'),
-                Avg_Orders=(fd_col, 'mean'),
-                Avg_Login_Mins=(lh_col, 'mean'),
-                Active_DEs=(lh_col, lambda x: (x > 10).sum())
-            ).reset_index()
-            zone_group["Hour"] = hr
-            zone_group["Login_Utilization_%"] = zone_group.apply(
-                lambda row: min(100, (row["Avg_Orders"] * 25 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0, axis=1
-            )
-            if vertical == "Instamart":
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
-                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
-                    else "✅ Balanced",
-                    axis=1
-                )
-            else:
-                zone_group["Recommendation"] = zone_group.apply(
-                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
-                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
-                    else "✅ Balanced",
-                    axis=1
-                )
-            hourly_data.append(zone_group)
-    if hourly_data:
-        zone_hour_df = pd.concat(hourly_data)
-        st.dataframe(zone_hour_df.sort_values(by=["DT", "CITY", "ZONE", "Hour"]))
-        st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
-    else:
-        zone_hour_df = pd.DataFrame()
-        st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
+    # ... (your normal hourly logic, as before) ...
 
-    # =========== 🌧️ RAIN PARTICIPATION SECTION (DEs logged in on rain day, excl. same-day OBs) ==========
+    # =================== 🌧️ RAIN PARTICIPATION SECTION ===================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
 
@@ -183,18 +120,22 @@ if uploaded_file:
                     format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y")
                 )
             rain_day = pd.to_datetime(selected_rain_date).date()
+            # Only zones where at least one DE has rain_flag > 0 on this date
             impacted_zones = sorted(df[(df["DT"] == rain_day) & (df[rain_flag_col] > 0)]["ZONE"].dropna().unique())
             with col_zone:
                 zone_options = ["All"] + impacted_zones
                 selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+            # Filter for DEs who logged in on rain day (not same-day OB), in the impacted zones
             rain_day_df = df[
                 (df["DT"] == rain_day) &
+                (df["ZONE"].isin(impacted_zones)) &
                 (df[onboard_col].astype(str) != str(rain_day)) &
                 (df["TOTAL LOGIN MINS"] > 0)
             ]
             if selected_rain_zone != "All":
                 rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
             rain_day_df = rain_day_df.copy()
+            # Rain Participation/Skipper: Only for these DEs
             rain_day_df["Rain_Skipper"] = np.where(rain_day_df[rain_flag_col] == 0, "Yes", "No")
             rain_day_df["Rain_Participation"] = np.where(rain_day_df[rain_flag_col] > 0, "Yes", "No")
             # Zone summary
@@ -228,7 +169,6 @@ if uploaded_file:
                 )
             else:
                 st.info("No eligible DEs found for rain skippers participation criteria for this filter.")
-
 
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
