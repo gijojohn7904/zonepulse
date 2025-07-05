@@ -176,6 +176,58 @@ if uploaded_file:
         st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
     else:
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
+        # =========== RAIN PARTICIPATION VIEW (RAIN_TAG > 0) ===========
+info_box(
+    "Rain Participation – Who stepped out when it poured?",
+    """
+- **Shows:** DEs who completed at least 1 rain order (RAIN_TAG > 0) per day.
+- **Why It Matters:** Only rain warriors keep the city running when the going gets tough!
+- **Metrics:** Zone, city, date, participation count, and percentage of rain participants.
+    """
+)
+st.markdown("---")
+st.markdown("## 🌧️ Rain Participation View (Based on RAIN_TAG)")
+
+if "RAIN_TAG" not in df.columns:
+    st.warning("RAIN_TAG column not found in uploaded data. Please ensure rain tag/aggregate is present.")
+else:
+    # Allow filtering by date, city, zone
+    rain_df = df.copy()
+    rain_df = rain_df[rain_df["RAIN_TAG"] > 0]
+    rain_part_summary = (
+        rain_df.groupby(["DT", "CITY", "ZONE"])
+        .agg(Rain_Participants=('DE_ID', 'nunique'))
+        .reset_index()
+    )
+
+    # For denominator, get total DEs active that day per zone/city (login > 0)
+    active_df = df[df["TOTAL LOGIN MINS"] > 0]
+    actives_summary = (
+        active_df.groupby(["DT", "CITY", "ZONE"])
+        .agg(Total_Active_DEs=('DE_ID', 'nunique'))
+        .reset_index()
+    )
+
+    # Merge for participation %
+    merged = pd.merge(rain_part_summary, actives_summary, on=["DT", "CITY", "ZONE"], how="left")
+    merged["Rain_Participation_%"] = (merged["Rain_Participants"] / merged["Total_Active_DEs"] * 100).round(2)
+
+    # Show heatmap
+    if not merged.empty:
+        st.markdown("#### 🌦️ Rain Participation % by Zone/Date")
+        heatmap = alt.Chart(merged).mark_rect().encode(
+            x=alt.X('ZONE:N', title='Zone', sort=list(merged["ZONE"].unique())),
+            y=alt.Y('DT:T', title='Date'),
+            color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
+            tooltip=['CITY', 'ZONE', 'DT', 'Rain_Participants', 'Total_Active_DEs', 'Rain_Participation_%']
+        ).properties(
+            width=400, height=350, title="Rain Participation %"
+        )
+        st.altair_chart(heatmap, use_container_width=True)
+
+    st.dataframe(merged)
+    st.download_button("📥 Download Rain Participation Report (CSV)", data=merged.to_csv(index=False), file_name="rain_participation_report.csv")
+
 
     # =========== DATE-WISE LOGIN COUNT ===========
     info_box(
