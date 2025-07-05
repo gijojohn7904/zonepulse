@@ -1,6 +1,3 @@
-python
-Copy
-Edit
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -253,18 +250,18 @@ if uploaded_file:
 
     # ==== DE-WISE RAIN SKIP RATE (CHRONIC SKIPPER) ====
     # For each DE: count eligible rain hours, skipped rain hours
-    de_skip = rain_status_df.groupby("DE_ID").agg(
-        DE_NAME=("DE_NAME","first"),
-        City=("CITY","first"),
-        Zone=("ZONE","first"),
-        Rain_Hours_Eligible=("Skipper_Participant", "count"),
-        Rain_Hours_Skipped=(lambda x: (x=="Skipper").sum()),
-        Rain_Hours_Participated=(lambda x: (x=="Participant").sum())
-    ).reset_index()
-    de_skip["Skip_Rate_%"] = (de_skip["Rain_Hours_Skipped"] / de_skip["Rain_Hours_Eligible"] * 100).round(2)
-    de_skip["Chronic_Skipper"] = np.where(de_skip["Skip_Rate_%"] > 70, "Yes", "No")
-    st.markdown("### Chronic Rain Skippers (Lifetime)")
-    if not de_skip.empty:
+    if not rain_status_df.empty:
+        de_skip = rain_status_df.groupby("DE_ID").agg(
+            DE_NAME=("DE_NAME","first"),
+            City=("CITY","first"),
+            Zone=("ZONE","first"),
+            Rain_Hours_Eligible=("Skipper_Participant", "count"),
+            Rain_Hours_Skipped=(lambda x: (x=="Skipper").sum()),
+            Rain_Hours_Participated=(lambda x: (x=="Participant").sum())
+        ).reset_index()
+        de_skip["Skip_Rate_%"] = (de_skip["Rain_Hours_Skipped"] / de_skip["Rain_Hours_Eligible"] * 100).round(2)
+        de_skip["Chronic_Skipper"] = np.where(de_skip["Skip_Rate_%"] > 70, "Yes", "No")
+        st.markdown("### Chronic Rain Skippers (Lifetime)")
         st.dataframe(de_skip.sort_values("Skip_Rate_%", ascending=False))
         st.download_button("📥 Download DE Rain Skipper Report", data=de_skip.to_csv(index=False), file_name="chronic_skippers.csv")
     else:
