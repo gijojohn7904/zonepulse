@@ -160,8 +160,7 @@ if uploaded_file:
     else:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
-
-# =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
+        # =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
 st.markdown("---")
 st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
 with st.expander("💡 Rain Participation Logic (click to expand)"):
@@ -297,6 +296,8 @@ else:
             st.download_button("📥 Download Rain Skippers Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_skippers_full.csv")
         else:
             st.info("No eligible DEs found for rain skippers participation criteria.")
+
+
 
 
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
