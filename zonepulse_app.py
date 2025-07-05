@@ -115,7 +115,7 @@ if uploaded_file:
             col_rain, col_zone = st.columns(2)
             with col_rain:
                 selected_rain_date = st.selectbox(
-                    "🌧️ Select Rain Date",
+                    " Select Rain Date",
                     [str(d) for d in rain_dates],
                     format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y")
                 )
@@ -124,7 +124,7 @@ if uploaded_file:
             impacted_zones = sorted(df[(df["DT"] == rain_day) & (df[rain_flag_col] > 0)]["ZONE"].dropna().unique())
             with col_zone:
                 zone_options = ["All"] + impacted_zones
-                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+                selected_rain_zone = st.selectbox("Select Zone (Rain Impacted Only)", zone_options)
             # Filter for DEs who logged in on rain day (not same-day OB), in the impacted zones
             rain_day_df = df[
                 (df["DT"] == rain_day) &
