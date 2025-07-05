@@ -111,9 +111,18 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
-    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
-    with st.expander("💡 Login Utilization % Explained (click to expand)", expanded=False):
+    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+    with st.expander("📊 Zone-Level Hourly Report – What does it show?", expanded=False):
         st.markdown("""
+**What is this?**  
+See how many Delivery Executives (DEs) are actually active each hour, by zone, plus their order counts and login time.
+
+**How to use:**  
+- **Spot Overstaffing:** Too many DEs logged in, but low orders/low utilization? Cut idle supply.
+- **Spot Understaffing:** High utilization, high orders per DE? You’re running lean—may need to add more heads.
+- **Action:** Target hours/zones where your cost is high and output is low.
+
+
 - **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
 - Measures how efficiently active DEs are utilized each hour.
 
@@ -132,18 +141,6 @@ if uploaded_file:
     - Otherwise: Balanced
 
 ⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
-        """)
-
-    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-    with st.expander("📊 Zone-Level Hourly Report – What does it show?", expanded=False):
-        st.markdown("""
-**What is this?**  
-See how many Delivery Executives (DEs) are actually active each hour, by zone, plus their order counts and login time.
-
-**How to use:**  
-- **Spot Overstaffing:** Too many DEs logged in, but low orders/low utilization? Cut idle supply.
-- **Spot Understaffing:** High utilization, high orders per DE? You’re running lean—may need to add more heads.
-- **Action:** Target hours/zones where your cost is high and output is low.
 """)
     st.markdown("## 📊 Zone-Level Hourly Report")
     hourly_data = []
