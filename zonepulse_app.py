@@ -166,9 +166,9 @@ st.markdown("---")
 st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
 with st.expander("💡 Rain Participation Logic (click to expand)"):
     st.markdown("""
-- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.
+- **Eligible Active:** Any DE who logged in (login mins > 0) on the rain day in that zone, **plus** any DE who was not present on the rain day but worked at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.
 - **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)
-- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.
+- **Why?** This is fairer: includes true regulars even if they missed one day, and never double-counts.
     """)
 
 LOOKBACK_DAYS = 7
@@ -212,23 +212,33 @@ else:
                 + ", ".join(incomplete_zones)
             )
 
-        # ELIGIBILITY LOGIC (vectorized)
-        last7_by_zone = {}
+        # ========== NEW ELIGIBILITY LOGIC ==========
+        rain_day_logged_in_by_zone = {
+            zone: set(rain_day_df[(rain_day_df["ZONE"] == zone) & (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"])
+            for zone in impacted_zones
+        }
+
+        last7_regulars_by_zone = {}
         for zone in impacted_zones:
             last7days = pd.date_range(end=pd.to_datetime(selected_rain_date)-pd.Timedelta(days=1), periods=LOOKBACK_DAYS).date
             mask7 = (df["ZONE"] == zone) & (df["DT"].isin(last7days)) & (df["TOTAL LOGIN MINS"] > 0)
             df7 = df.loc[mask7, ["DE_ID", "DT"]]
             count_days = df7.groupby("DE_ID")["DT"].nunique()
-            eligible = set(count_days[count_days >= int(PARTICIPATION_THRESHOLD*LOOKBACK_DAYS)].index)
-            last7_by_zone[zone] = eligible
+            regulars = set(count_days[count_days >= int(PARTICIPATION_THRESHOLD*LOOKBACK_DAYS)].index)
+            # Exclude DEs who already logged in on rain day (no double count)
+            regulars = regulars - rain_day_logged_in_by_zone[zone]
+            last7_regulars_by_zone[zone] = regulars
+
+        eligible_by_zone = {
+            zone: rain_day_logged_in_by_zone[zone] | last7_regulars_by_zone[zone]
+            for zone in impacted_zones
+        }
 
         rain_part = []
         for zone in impacted_zones:
             city = rain_day_df[rain_day_df["ZONE"] == zone]["CITY"].iloc[0] if not rain_day_df[rain_day_df["ZONE"] == zone].empty else ""
-            eligible_DEs = last7_by_zone[zone]
-            rain_DEs = set(rain_day_df[(rain_day_df["ZONE"] == zone) &
-                                       (rain_day_df[rain_flag_col] > 0) &
-                                       (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"])
+            eligible_DEs = eligible_by_zone[zone]
+            rain_DEs = rain_day_logged_in_by_zone[zone]
             rate = (len(rain_DEs) / len(eligible_DEs))*100 if eligible_DEs else np.nan
             rain_part.append({
                 "Zone": zone, "City": city,
@@ -262,10 +272,8 @@ else:
         # --- DE-Level Table (Vectorized, fast)
         all_de = []
         for zone in impacted_zones:
-            eligible_DEs = last7_by_zone[zone]
-            rain_DEs = set(rain_day_df[(rain_day_df["ZONE"] == zone) &
-                                       (rain_day_df[rain_flag_col] > 0) &
-                                       (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"])
+            eligible_DEs = eligible_by_zone[zone]
+            rain_DEs = rain_day_logged_in_by_zone[zone]
             de_rows = df[df["DE_ID"].isin(eligible_DEs) & (df["ZONE"] == zone)]
             for de in eligible_DEs:
                 sub = de_rows[de_rows["DE_ID"] == de]
@@ -278,7 +286,7 @@ else:
                     "DE_NAME": de_name,
                     "Zone": zone,
                     "City": city,
-                    "Was_Active_Last_7d": "Yes",
+                    "Was_Active_Last_7d": "Yes" if de in last7_regulars_by_zone[zone] else "No",
                     "Logged_in_on_Rain": rain_login,
                     "Rain_Skipper": rain_skip
                 })
