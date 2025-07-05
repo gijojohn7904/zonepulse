@@ -195,9 +195,10 @@ if uploaded_file:
             # Exclude DEs onboarded on rain day itself
             eligible_mask = pd.to_datetime(df[onboard_col]).dt.date < rain_day
 
-            rain_day_df = df[(df["DT"] == rain_day) & eligible_mask].copy()
-            impacted_zones = rain_day_df[rain_day_df[rain_flag_col] > 0]["ZONE"].unique()
-            impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
+            # Only zones that had rain_flag > 0 on selected rain day
+            rain_impacted_zones = df[(df["DT"] == rain_day) & (df[rain_flag_col] > 0)]["ZONE"].dropna().unique()
+            rain_day_df = df[(df["DT"] == rain_day) & eligible_mask & (df["ZONE"].isin(rain_impacted_zones))].copy()
+            impacted_zones = sorted(rain_impacted_zones)
 
             with col_zone:
                 zone_options = ["All"] + list(impacted_zones)
@@ -219,6 +220,7 @@ if uploaded_file:
                 & (pd.to_datetime(df["DT"]).dt.date >= last7_start)
                 & eligible_mask
                 & (df["TOTAL LOGIN MINS"] > 0)
+                & (df["ZONE"].isin(impacted_zones))
             )
             last7 = df[last7_mask][["DE_ID", "ZONE", "DT"]].drop_duplicates()
             regulars = (
@@ -278,6 +280,7 @@ if uploaded_file:
                 data=eligible_all[["ZONE", "CITY", "DE_ID", "DE_NAME", "Rain_Participation", "Rain_Skipper"]].to_csv(index=False),
                 file_name="rain_skippers_full.csv"
             )
+
 
 
 
