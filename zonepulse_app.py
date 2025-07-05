@@ -39,6 +39,33 @@ check_password()
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
+    <style>
+    /* Make the expander bar and content area blue */
+    .stExpander {
+        background-color: #e3f0fc !important;  /* light blue background */
+        border-radius: 10px !important;
+        margin-bottom: 14px !important;
+        box-shadow: 0 3px 10px #bed9f3;
+    }
+    .stExpanderHeader {
+        background-color: #2176c1 !important;   /* deep blue bar */
+        color: #fff !important; 
+        font-weight: 700 !important;
+        border-radius: 10px 10px 0 0 !important;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        letter-spacing: 0.5px;
+    }
+    .stExpanderContent {
+        background-color: #e3f0fc !important;  /* light blue inside */
+        color: #10385c !important;
+        border-radius: 0 0 10px 10px !important;
+        padding-bottom: 12px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
     This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
