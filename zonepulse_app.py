@@ -74,15 +74,19 @@ uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", t
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip().str.upper()
+
     if "CITY" not in df.columns or "ZONE" not in df.columns:
         st.error("Missing CITY or ZONE column in file.")
         st.stop()
+
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
+
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
+
     # ------ FILTERS ------
     col1, col2 = st.columns(2)
     with col1:
@@ -94,6 +98,7 @@ if uploaded_file:
         selected_city = st.selectbox("🏩 Choose City", city_options)
         if selected_city != "All":
             df = df[df["CITY"] == selected_city]
+
     col3, col4 = st.columns(2)
     with col3:
         zones = sorted(df["ZONE"].dropna().unique())
@@ -107,6 +112,7 @@ if uploaded_file:
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
@@ -121,7 +127,6 @@ See how many Delivery Executives (DEs) are actually active each hour, by zone, p
 - **Spot Overstaffing:** Too many DEs logged in, but low orders/low utilization? Cut idle supply.
 - **Spot Understaffing:** High utilization, high orders per DE? You’re running lean—may need to add more heads.
 - **Action:** Target hours/zones where your cost is high and output is low.
-
 
 - **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
 - Measures how efficiently active DEs are utilized each hour.
@@ -183,7 +188,6 @@ See how many Delivery Executives (DEs) are actually active each hour, by zone, p
     else:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
-
     # =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
     with st.expander("🌧️ Rain Participation Analysis – What’s the big deal?", expanded=False):
         st.markdown("""
