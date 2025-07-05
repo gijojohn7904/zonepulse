@@ -35,17 +35,29 @@ check_password()
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
     <style>
-    /* Make all expanders light blue */
+    /* Make all expanders (header AND content) light blue */
+    [data-testid="stExpander"] {
+        background-color: #e6f2ff !important;
+        border-radius: 8px !important;
+        border: 1.5px solid #b3d8fd !important;
+    }
     [data-testid="stExpander"] > div {
-        background-color: #e6f2ff !important;  /* Light blue */
+        background-color: #e6f2ff !important;
         border-radius: 8px !important;
     }
     [data-testid="stExpander"] button {
         background-color: #e6f2ff !important;
-        color: #222 !important;
+        color: #1b2838 !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+    }
+    /* Remove drop-shadow and gray outline on expanders */
+    [data-testid="stExpander"] {
+        box-shadow: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
