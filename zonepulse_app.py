@@ -183,7 +183,7 @@ if uploaded_file:
         """
 - **Shows:** Participation of DEs on rain-impacted hours, by zone.
 - **Skipper:** DE was present (login > 0) in the previous hour but has (login==0 OR rain orders==0) in rain hour.
-- **Participant:** DE who takes at least 1 rain order in a rain hour (RFD_xx > 0).
+- **Participant:** DE who takes at least 1 rain order in a rain hour (RFD_xx > 0 and LH_xx > 0).
 - **Chronic Skipper:** Skip rate > 70% across all rain hours.
 - **Why It Matters:** Spot chronic/fair-weather DEs, nudge/engage the right people, and visualize ops improvement.
         """
@@ -192,15 +192,14 @@ if uploaded_file:
     st.markdown("## 🌧️ Rain Participation, Skipper & Chronic Skipper (Hourly)")
 
     # ---- FIND RAIN HOURS (per zone/date) ----
-    rain_hour_cols = [col for col in df.columns if col.startswith("RFD_")]
     rain_hours_table = []
+    rain_hour_cols = [col for col in df.columns if col.startswith("RFD_")]
     for _, row in df.iterrows():
         for h in range(24):
             col = f"RFD_{str(h).zfill(2)}"
             if col in df.columns and row[col] > 0:
                 rain_hours_table.append((row["CITY"], row["ZONE"], row["DT"], h))
-    rain_hours_df = pd.DataFrame(rain_hours_table, columns=["CITY","ZONE","DT","RAIN_HOUR"])
-    rain_hours_df = rain_hours_df.drop_duplicates()
+    rain_hours_df = pd.DataFrame(rain_hours_table, columns=["CITY","ZONE","DT","RAIN_HOUR"]).drop_duplicates()
 
     # ---- PER DE, HOUR: Tag rain skipper/participant ----
     rain_status_rows = []
@@ -213,12 +212,12 @@ if uploaded_file:
             login_prev = r.get(f"LH_{str(prev_hr).zfill(2)}", 0)
             login_now = r.get(f"LH_{str(hr).zfill(2)}", 0)
             rain_orders = r.get(f"RFD_{str(hr).zfill(2)}", 0)
-            # Determine Skipper/Participant
+            # Participation logic
             if login_prev > 0:
-                if login_now == 0 or rain_orders == 0:
-                    status = "Skipper"
-                else:
+                if login_now > 0 and rain_orders > 0:
                     status = "Participant"
+                else:
+                    status = "Skipper"
                 rain_status_rows.append({
                     "DE_ID": de_id, "DE_NAME": r.get("DE_NAME",""), "ZONE": zone, "CITY": city, "DT": dt, "RAIN_HOUR": hr,
                     "Skipper_Participant": status
@@ -249,7 +248,6 @@ if uploaded_file:
         st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
 
     # ==== DE-WISE RAIN SKIP RATE (CHRONIC SKIPPER) ====
-    # For each DE: count eligible rain hours, skipped rain hours
     if not rain_status_df.empty:
         de_skip = rain_status_df.groupby("DE_ID").agg(
             DE_NAME=("DE_NAME","first"),
@@ -274,6 +272,7 @@ if uploaded_file:
         st.download_button("📥 Download All Rain Skipper/Participant Data", data=rain_status_df.to_csv(index=False), file_name="rain_skippers_participants.csv")
     else:
         st.info("No rain hour participation/skipping records found in current data.")
+
     # =========== DATE-WISE LOGIN COUNT ===========
     info_box(
         "Date-wise Login Count – What's this for?",
