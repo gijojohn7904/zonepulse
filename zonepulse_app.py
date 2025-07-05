@@ -161,80 +161,73 @@ if uploaded_file:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-# =========== 🌧️ RAIN PARTICIPATION SECTION (ONLY LOGGED-IN DEs ON RAIN DAY, EXCLUDING NEW JOINERS) ==========
-st.markdown("---")
-st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
+    # =========== 🌧️ RAIN PARTICIPATION SECTION (DEs logged in on rain day, excl. same-day OBs) ==========
+    st.markdown("---")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
 
-LOOKBACK_DAYS = 7
-rain_flag_col = "RAIN_FLAG"
-onboard_col = "ONBOARDING_DATE"
+    rain_flag_col = "RAIN_FLAG"
+    onboard_col = "ONBOARDING_DATE"
 
-if rain_flag_col not in df.columns or onboard_col not in df.columns:
-    st.warning("Your file must have both RAIN_FLAG and ONBOARDING_DATE columns.")
-else:
-    rain_dates = sorted(df.loc[df[rain_flag_col] > 0, "DT"].unique())
-    if not rain_dates:
-        st.info("No rain dates found in the selected period!")
+    if rain_flag_col not in df.columns or onboard_col not in df.columns:
+        st.warning("Your file must have both RAIN_FLAG and ONBOARDING_DATE columns.")
     else:
-        col_rain, col_zone = st.columns(2)
-        with col_rain:
-            selected_rain_date = st.selectbox(
-                "🌧️ Select Rain Date",
-                [str(d) for d in rain_dates],
-                format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y")
-            )
-        rain_day = pd.to_datetime(selected_rain_date).date()
-        # Get zones impacted (where at least one DE had rain_flag > 0)
-        impacted_zones = sorted(df[(df["DT"] == rain_day) & (df[rain_flag_col] > 0)]["ZONE"].dropna().unique())
-        with col_zone:
-            zone_options = ["All"] + impacted_zones
-            selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
-        # Filter DEs for rain day, zone, and who are not new joiners
-        rain_day_df = df[
-            (df["DT"] == rain_day) &
-            (df[onboard_col].astype(str) != str(rain_day)) &
-            (df["TOTAL LOGIN MINS"] > 0)
-        ]
-        if selected_rain_zone != "All":
-            rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
-        # Eligible DEs: those who logged in (already filtered above)
-        eligible_DEs = rain_day_df["DE_ID"].unique()
-        # Rain Skipper: RAIN_FLAG==0 for that DE on rain day
-        rain_day_df["Rain_Skipper"] = np.where(rain_day_df[rain_flag_col] == 0, "Yes", "No")
-        rain_day_df["Rain_Participation"] = np.where(rain_day_df[rain_flag_col] > 0, "Yes", "No")
-        # Zone summary
-        zone_part_summary = (
-            rain_day_df.groupby("ZONE").agg(
-                Eligible_Actives=('DE_ID', 'nunique'),
-                Rain_Skippers=('Rain_Skipper', lambda x: (x == "Yes").sum()),
-                Rain_Participants=('Rain_Participation', lambda x: (x == "Yes").sum())
-            ).reset_index()
-        )
-        zone_part_summary["Rain_Participation_%"] = (
-            zone_part_summary["Rain_Participants"] / zone_part_summary["Eligible_Actives"] * 100
-        ).round(2)
-        # Show zone summary
-        st.markdown("#### 🌦️ Rain Participation % by Zone (for selected rain date)")
-        st.dataframe(zone_part_summary)
-        st.download_button(
-            "📥 Download Zone Rain Participation (CSV)",
-            data=zone_part_summary.to_csv(index=False),
-            file_name="zone_rain_participation.csv"
-        )
-        # Show full DE-level table (all details for that date)
-        st.markdown("### 🔎 DE-Level Rain Skippers Table (All Details for This Date)")
-        display_cols = [c for c in ["DT", "DE_ID", "DE_NAME", "ZONE", "CITY", "DE_SHIFT", "TOTAL LOGIN MINS", "TOTAL ORDERS", "DAILY_EARNINGS", "REJECTED_ORDERS", "Rain_Participation", "Rain_Skipper"] if c in rain_day_df.columns]
-        display_cols += [c for c in rain_day_df.columns if c not in display_cols]
-        if not rain_day_df.empty:
-            st.dataframe(rain_day_df[display_cols].sort_values(by=["ZONE", "DE_NAME"]), use_container_width=True)
-            st.download_button(
-                "📥 Download Rain Skippers Full Detail (CSV)",
-                data=rain_day_df[display_cols].sort_values(by=["ZONE", "DE_NAME"]).to_csv(index=False),
-                file_name="rain_skippers_full_detail.csv"
-            )
+        rain_dates = sorted(df.loc[df[rain_flag_col] > 0, "DT"].unique())
+        if not rain_dates:
+            st.info("No rain dates found in the selected period!")
         else:
-            st.info("No eligible DEs found for rain skippers participation criteria for this filter.")
-
+            col_rain, col_zone = st.columns(2)
+            with col_rain:
+                selected_rain_date = st.selectbox(
+                    "🌧️ Select Rain Date",
+                    [str(d) for d in rain_dates],
+                    format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y")
+                )
+            rain_day = pd.to_datetime(selected_rain_date).date()
+            impacted_zones = sorted(df[(df["DT"] == rain_day) & (df[rain_flag_col] > 0)]["ZONE"].dropna().unique())
+            with col_zone:
+                zone_options = ["All"] + impacted_zones
+                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+            rain_day_df = df[
+                (df["DT"] == rain_day) &
+                (df[onboard_col].astype(str) != str(rain_day)) &
+                (df["TOTAL LOGIN MINS"] > 0)
+            ]
+            if selected_rain_zone != "All":
+                rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
+            rain_day_df = rain_day_df.copy()
+            rain_day_df["Rain_Skipper"] = np.where(rain_day_df[rain_flag_col] == 0, "Yes", "No")
+            rain_day_df["Rain_Participation"] = np.where(rain_day_df[rain_flag_col] > 0, "Yes", "No")
+            # Zone summary
+            zone_part_summary = (
+                rain_day_df.groupby("ZONE").agg(
+                    Eligible_Actives=('DE_ID', 'nunique'),
+                    Rain_Skippers=('Rain_Skipper', lambda x: (x == "Yes").sum()),
+                    Rain_Participants=('Rain_Participation', lambda x: (x == "Yes").sum())
+                ).reset_index()
+            )
+            zone_part_summary["Rain_Participation_%"] = (
+                zone_part_summary["Rain_Participants"] / zone_part_summary["Eligible_Actives"] * 100
+            ).round(2)
+            st.markdown("#### 🌦️ Rain Participation % by Zone (for selected rain date)")
+            st.dataframe(zone_part_summary)
+            st.download_button(
+                "📥 Download Zone Rain Participation (CSV)",
+                data=zone_part_summary.to_csv(index=False),
+                file_name="zone_rain_participation.csv"
+            )
+            # DE-level table
+            st.markdown("### 🔎 DE-Level Rain Skippers Table (All Details for This Date)")
+            display_cols = [c for c in ["DT", "DE_ID", "DE_NAME", "ZONE", "CITY", "DE_SHIFT", "TOTAL LOGIN MINS", "TOTAL ORDERS", "DAILY_EARNINGS", "REJECTED_ORDERS", "Rain_Participation", "Rain_Skipper"] if c in rain_day_df.columns]
+            display_cols += [c for c in rain_day_df.columns if c not in display_cols]
+            if not rain_day_df.empty:
+                st.dataframe(rain_day_df[display_cols].sort_values(by=["ZONE", "DE_NAME"]), use_container_width=True)
+                st.download_button(
+                    "📥 Download Rain Skippers Full Detail (CSV)",
+                    data=rain_day_df[display_cols].sort_values(by=["ZONE", "DE_NAME"]).to_csv(index=False),
+                    file_name="rain_skippers_full_detail.csv"
+                )
+            else:
+                st.info("No eligible DEs found for rain skippers participation criteria for this filter.")
 
 
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
