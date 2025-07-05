@@ -3,11 +3,6 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-# ---------- INFO BOX FUNCTION ----------
-def info_box(title, content, expanded=False):
-    with st.expander(f"{title} (Info)", expanded=expanded):
-        st.markdown(content)
-
 # ---------------------- PASSWORD GATE ----------------------
 def check_password():
     def password_entered():
@@ -39,21 +34,6 @@ check_password()
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
 st.markdown("""
-    <style>
-    .stExpander {
-        background-color: #e3f0fc !important; border-radius: 10px !important; margin-bottom: 14px !important; box-shadow: 0 3px 10px #bed9f3;
-    }
-    .stExpanderHeader {
-        background-color: #2176c1 !important; color: #fff !important; font-weight: 700 !important;
-        border-radius: 10px 10px 0 0 !important; padding-top: 6px !important; padding-bottom: 6px !important; letter-spacing: 0.5px;
-    }
-    .stExpanderContent {
-        background-color: #e3f0fc !important; color: #10385c !important; border-radius: 0 0 10px 10px !important; padding-bottom: 12px !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
     This tool is built using internal company data and is intended <b>strictly for internal use only</b>.<br>
@@ -64,18 +44,82 @@ st.markdown("""
 
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
+
 Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
-# ------------- CACHING DATA AND HEAVY COMPUTATIONS --------------
-@st.cache_data(show_spinner="Loading file...", max_entries=2)
-def load_data(uploaded_file):
+# ---------------------- FILE UPLOAD ----------------------
+uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
+if uploaded_file:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip().str.upper()
-    return df
+    if "CITY" not in df.columns or "ZONE" not in df.columns:
+        st.error("Missing CITY or ZONE column in file.")
+        st.stop()
 
-@st.cache_data(show_spinner="Crunching zone hourly...", max_entries=10)
-def compute_zone_hour_df(df, vertical):
+    required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
+    if len(required_cols) == 0:
+        st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
+        st.stop()
+
+    # Detect vertical
+    df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
+
+    # ------ FILTERS ------
+    col1, col2 = st.columns(2)
+    with col1:
+        vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
+        df = df[df["VERTICAL"] == vertical]
+    with col2:
+        cities = sorted(df["CITY"].dropna().unique())
+        city_options = ["All"] + list(cities)
+        selected_city = st.selectbox("🏩 Choose City", city_options)
+        if selected_city != "All":
+            df = df[df["CITY"] == selected_city]
+
+    col3, col4 = st.columns(2)
+    with col3:
+        zones = sorted(df["ZONE"].dropna().unique())
+        zone_options = ["All"] + list(zones)
+        selected_zone = st.selectbox("📍 Choose Zone", zone_options)
+        if selected_zone != "All":
+            df = df[df["ZONE"] == selected_zone]
+    with col4:
+        df["DT"] = pd.to_datetime(df["DT"]).dt.date
+        min_date, max_date = df["DT"].min(), df["DT"].max()
+        selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
+        if len(selected_dates) == 2:
+            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
+
+    # Add total login mins/orders
+    df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
+    df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
+
+    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
+    with st.expander("💡 Login Utilization % Explained (click to expand)"):
+        st.markdown("""
+- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
+- Measures how efficiently active DEs are utilized each hour.
+
+**Interpretation:**
+- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
+- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
+
+**Thresholds:**
+- **Instamart:**
+    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%
+    - Understaffed: Orders/hr > 2.2 & Utilization > 70%
+    - Otherwise: Balanced
+- **SwiggyFood:**
+    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%
+    - Understaffed: Orders/hr > 1.2 & Utilization > 57%
+    - Otherwise: Balanced
+
+⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
+        """)
+
+    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+    st.markdown("## 📊 Zone-Level Hourly Report")
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -109,191 +153,193 @@ def compute_zone_hour_df(df, vertical):
                     axis=1
                 )
             hourly_data.append(zone_group)
-    return pd.concat(hourly_data) if hourly_data else pd.DataFrame()
-
-# ------------- MAIN LOGIC -------------
-uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
-if uploaded_file:
-    df = load_data(uploaded_file)
-    if "CITY" not in df.columns or "ZONE" not in df.columns:
-        st.error("Missing CITY or ZONE column in file.")
-        st.stop()
-
-    required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
-    if len(required_cols) == 0:
-        st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
-        st.stop()
-
-    # Detect vertical
-    df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
-
-    # ------ FILTERS ------
-    col1, col2 = st.columns(2)
-    with col1:
-        vertical = st.selectbox("Choose Vertical", ["SwiggyFood", "Instamart"])
-        df = df[df["VERTICAL"] == vertical]
-    with col2:
-        cities = sorted(df["CITY"].dropna().unique())
-        city_options = ["All"] + list(cities)
-        selected_city = st.selectbox("Choose City", city_options)
-        if selected_city != "All":
-            df = df[df["CITY"] == selected_city]
-
-    col3, col4 = st.columns(2)
-    with col3:
-        zones = sorted(df["ZONE"].dropna().unique())
-        zone_options = ["All"] + list(zones)
-        selected_zone = st.selectbox("Choose Zone", zone_options)
-        if selected_zone != "All":
-            df = df[df["ZONE"] == selected_zone]
-    with col4:
-        df["DT"] = pd.to_datetime(df["DT"]).dt.date
-        min_date, max_date = df["DT"].min(), df["DT"].max()
-        selected_dates = st.date_input("Filter by Date Range", [min_date, max_date])
-        if len(selected_dates) == 2:
-            df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-
-    # Add total login mins/orders only ONCE
-    if "TOTAL LOGIN MINS" not in df.columns:
-        df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
-    if "TOTAL ORDERS" not in df.columns:
-        df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
-
-    # =========== ZONE-LEVEL HOURLY REPORT ===========
-    info_box(
-        "Zone-Level Hourly Report",
-        """
-- **Shows:** Hourly breakdown of DEs active in each zone, orders per hour, average login mins, and utilization.
-- **Key Metric:** Login Utilization % = (Avg Orders x 25 mins) / (Avg Login Minutes) x 100.
-- **Why Care:** Spot over/understaffed hours instantly. If utilization is low and DEs are logged in—you're burning cost for no reason.
-- **Actions:** Reallocate supply or adjust login targets for idle hours.
-        """
-    )
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    zone_hour_df = compute_zone_hour_df(df, vertical)
-    if not zone_hour_df.empty:
+    if hourly_data:
+        zone_hour_df = pd.concat(hourly_data)
         st.dataframe(zone_hour_df.sort_values(by=["DT", "CITY", "ZONE", "Hour"]))
         st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
     else:
+        zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # =========== RAIN PARTICIPATION VIEW (RAIN_TAG > 0) ===========
-    info_box(
-        "Rain Participation – Who stepped out when it poured?",
-        """
-- **Shows:** DEs who completed at least 1 rain order (RAIN_TAG > 0) per day.
-- **Why It Matters:** Only rain warriors keep the city running when the going gets tough!
-- **Metrics:** Zone, city, date, participation count, and percentage of rain participants.
-        """
-    )
+    # =========== 🌧️ RAIN PARTICIPATION SECTION (INFO IN EXPANDER) ==========
     st.markdown("---")
-    st.markdown("## 🌧️ Rain Participation View (Based on RAIN_TAG)")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
+    with st.expander("💡 Rain Participation Logic (click to expand)"):
+        st.markdown("""
+- **Eligible Active:** A DE who worked (login mins > 0) for at least 80% (≥6/7) of the days in the same zone in the 7 days *before* the rain day.
+- **Participation %:** (DEs who logged in on rain day) / (Eligible Actives for zone)
+- **Why?** Filters out week-off, new joiners, and part-timers. Spot real 'core' DEs who skipped rain.
+        """)
 
-    if "RAIN_TAG" not in df.columns:
-        st.warning("RAIN_TAG column not found in uploaded data. Please ensure rain tag/aggregate is present.")
+    LOOKBACK_DAYS = 7
+    PARTICIPATION_THRESHOLD = 0.8  # 80%
+
+    rain_flag_col = "RAIN_FLAG"
+    if rain_flag_col not in df.columns:
+        st.warning("No RAIN_FLAG column in uploaded file. Please include rain flag for this analysis.")
     else:
-        # Allow filtering by date, city, zone
-        rain_df = df.copy()
-        rain_df = rain_df[rain_df["RAIN_TAG"] > 0]
-        rain_part_summary = (
-            rain_df.groupby(["DT", "CITY", "ZONE"])
-            .agg(Rain_Participants=('DE_ID', 'nunique'))
-            .reset_index()
-        )
-
-        # For denominator, get total DEs active that day per zone/city (login > 0)
-        active_df = df[df["TOTAL LOGIN MINS"] > 0]
-        actives_summary = (
-            active_df.groupby(["DT", "CITY", "ZONE"])
-            .agg(Total_Active_DEs=('DE_ID', 'nunique'))
-            .reset_index()
-        )
-
-        # Merge for participation %
-        merged = pd.merge(rain_part_summary, actives_summary, on=["DT", "CITY", "ZONE"], how="left")
-        merged["Rain_Participation_%"] = (merged["Rain_Participants"] / merged["Total_Active_DEs"] * 100).round(2)
-
-        # Show heatmap
-        if not merged.empty:
-            st.markdown("#### 🌦️ Rain Participation % by Zone/Date")
-            heatmap = alt.Chart(merged).mark_rect().encode(
-                x=alt.X('ZONE:N', title='Zone', sort=list(merged["ZONE"].unique())),
-                y=alt.Y('DT:T', title='Date'),
-                color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
-                tooltip=['CITY', 'ZONE', 'DT', 'Rain_Participants', 'Total_Active_DEs', 'Rain_Participation_%']
-            ).properties(
-                width=400, height=350, title="Rain Participation %"
-            )
-            st.altair_chart(heatmap, use_container_width=True)
-
-        st.dataframe(merged)
-        st.download_button("📥 Download Rain Participation Report (CSV)", data=merged.to_csv(index=False), file_name="rain_participation_report.csv")
-
-    # =========== DATE-WISE LOGIN COUNT ===========
-    info_box(
-        "Date-wise Login Count – What's this for?",
-        """
-- **Shows:** Unique DEs who logged in each day, by zone.
-- **Why Use:** Spot sudden supply drops, festival dips, or daily onboarding impact.
-- **Calculation:** Simple count of DEs with login mins > 0 for each day.
-        """
-    )
-    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
-    filter_mask = (df["TOTAL LOGIN MINS"] > 0)
-    if selected_city != "All":
-        filter_mask &= (df["CITY"] == selected_city)
-    if selected_zone != "All":
-        filter_mask &= (df["ZONE"] == selected_zone)
-    filtered_df = df[filter_mask].copy()
-
-    login_counts = (
-        filtered_df.groupby(["DT", "ZONE"])
-        .agg(Login_Count=('DE_ID', 'nunique'))
-        .reset_index()
-    )
-    if selected_zone == "All":
-        chart_zones = login_counts["ZONE"].unique()
-        if len(chart_zones) == 0:
-            st.info("No data for the selected filters.")
-            login_counts = pd.DataFrame()
+        rain_dates = sorted(df.loc[df[rain_flag_col] == 1, "DT"].unique())
+        if not rain_dates:
+            st.warning("No rain dates found in the selected period!")
         else:
-            show_zone = st.selectbox("Select Zone to Plot (for chart below):", sorted(chart_zones))
-            login_counts = login_counts[login_counts["ZONE"] == show_zone]
-    else:
-        show_zone = selected_zone
-        login_counts = login_counts[login_counts["ZONE"] == show_zone]
+            col_rain, col_zone = st.columns(2)
+            with col_rain:
+                selected_rain_date = st.selectbox(
+                    "🌧️ Select Rain Date",
+                    rain_dates,
+                    format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
+                )
 
-    if not login_counts.empty:
-        chart = alt.Chart(login_counts).mark_line(point=True).encode(
-            x=alt.X("DT:T", title="Date"),
-            y=alt.Y("Login_Count", title="No. of DEs Logged In"),
-            tooltip=[
-                alt.Tooltip("DT:T", title="Date"),
-                alt.Tooltip("Login_Count", title="Active DE Count"),
-                alt.Tooltip("ZONE", title="Zone")
-            ]
-        ).properties(
-            title=f"Login Count per Day – {show_zone}"
-        ).interactive()
-        st.altair_chart(chart, use_container_width=True)
-        st.download_button(
-            "📥 Download Login Count (CSV)",
-            data=login_counts.to_csv(index=False),
-            file_name=f"{show_zone}_datewise_login_count.csv",
-            mime="text/csv"
+            impacted_zones = df[(df["DT"] == selected_rain_date) & (df[rain_flag_col] == 1)]["ZONE"].unique()
+            impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
+            with col_zone:
+                zone_options = ["All"] + list(impacted_zones)
+                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+            rain_day_df = df[(df["DT"] == selected_rain_date) & (df["ZONE"].isin(impacted_zones))]
+            if selected_rain_zone != "All":
+                rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
+                impacted_zones = [selected_rain_zone]
+
+            # DATA COMPLETENESS CHECK
+            incomplete_zones = []
+            for zone in impacted_zones:
+                zone_days = df[(df["ZONE"] == zone) & (df["DT"] < selected_rain_date)]["DT"].nunique()
+                if zone_days < LOOKBACK_DAYS:
+                    incomplete_zones.append(f"{zone} ({zone_days}/7 days)")
+            if incomplete_zones:
+                st.warning(
+                    "⚠️ The following zone(s) have <7 pre-rain days of data and may show inflated participation rates:\n"
+                    + ", ".join(incomplete_zones)
+                )
+
+            # ELIGIBILITY LOGIC (vectorized)
+            last7_by_zone = {}
+            for zone in impacted_zones:
+                last7days = pd.date_range(end=pd.to_datetime(selected_rain_date)-pd.Timedelta(days=1), periods=LOOKBACK_DAYS).date
+                mask7 = (df["ZONE"] == zone) & (df["DT"].isin(last7days)) & (df["TOTAL LOGIN MINS"] > 0)
+                df7 = df.loc[mask7, ["DE_ID", "DT"]]
+                count_days = df7.groupby("DE_ID")["DT"].nunique()
+                eligible = set(count_days[count_days >= int(PARTICIPATION_THRESHOLD*LOOKBACK_DAYS)].index)
+                last7_by_zone[zone] = eligible
+
+            rain_part = []
+            for zone in impacted_zones:
+                city = rain_day_df[rain_day_df["ZONE"] == zone]["CITY"].iloc[0] if not rain_day_df[rain_day_df["ZONE"] == zone].empty else ""
+                eligible_DEs = last7_by_zone[zone]
+                rain_DEs = set(rain_day_df[(rain_day_df["ZONE"] == zone) &
+                                           (rain_day_df[rain_flag_col] == 1) &
+                                           (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"])
+                rate = (len(rain_DEs) / len(eligible_DEs))*100 if eligible_DEs else np.nan
+                rain_part.append({
+                    "Zone": zone, "City": city,
+                    "Eligible_Actives": len(eligible_DEs),
+                    "Rain_Logins": len(rain_DEs),
+                    "Rain_Participation_%": round(rate, 2) if not np.isnan(rate) else None
+                })
+            zone_part_df = pd.DataFrame(rain_part)
+            zone_part_df = zone_part_df.sort_values(by="Rain_Participation_%", ascending=False)
+
+            # Heatmap (sorted)
+            if not zone_part_df.empty:
+                heatmap = alt.Chart(zone_part_df).mark_rect().encode(
+                    x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
+                    y=alt.Y('Rain_Participation_%:Q', title='Rain Participation %'),
+                    color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
+                    tooltip=['Zone', 'City', 'Eligible_Actives', 'Rain_Logins', 'Rain_Participation_%']
+                ).properties(
+                    width=400, height=350, title="Rain Participation % by Zone"
+                )
+                st.altair_chart(heatmap, use_container_width=True)
+
+            def color_code(val):
+                if pd.isnull(val): return "background-color: #eee"
+                elif val < 50: return "background-color: #ffcccc"
+                elif val < 80: return "background-color: #ffe699"
+                else: return "background-color: #c6efce"
+            st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
+            st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
+
+            # --- DE-Level Table (Vectorized, fast)
+            all_de = []
+            for zone in impacted_zones:
+                eligible_DEs = last7_by_zone[zone]
+                rain_DEs = set(rain_day_df[(rain_day_df["ZONE"] == zone) &
+                                           (rain_day_df[rain_flag_col] == 1) &
+                                           (rain_day_df["TOTAL LOGIN MINS"] > 0)]["DE_ID"])
+                de_rows = df[df["DE_ID"].isin(eligible_DEs) & (df["ZONE"] == zone)]
+                for de in eligible_DEs:
+                    sub = de_rows[de_rows["DE_ID"] == de]
+                    de_name = sub["DE_NAME"].iloc[0] if not sub.empty and "DE_NAME" in sub.columns else ""
+                    city = sub["CITY"].iloc[0] if not sub.empty and "CITY" in sub.columns else ""
+                    rain_login = "Yes" if de in rain_DEs else "No"
+                    rain_skip = "Yes" if de not in rain_DEs else "No"
+                    all_de.append({
+                        "DE_ID": de,
+                        "DE_NAME": de_name,
+                        "Zone": zone,
+                        "City": city,
+                        "Was_Active_Last_7d": "Yes",
+                        "Logged_in_on_Rain": rain_login,
+                        "Rain_Skipper": rain_skip
+                    })
+            de_df = pd.DataFrame(all_de)
+            st.markdown("### 🔎 DE-Level Rain Skippers Table")
+            if not de_df.empty:
+                st.dataframe(de_df)
+                st.download_button("📥 Download Rain Skippers Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_skippers_full.csv")
+            else:
+                st.info("No eligible DEs found for rain skippers participation criteria.")
+
+    # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
+    st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+    if not df.empty:
+        filter_mask = (df["TOTAL LOGIN MINS"] > 0)
+        if selected_city != "All":
+            filter_mask &= (df["CITY"] == selected_city)
+        if selected_zone != "All":
+            filter_mask &= (df["ZONE"] == selected_zone)
+        filtered_df = df[filter_mask].copy()
+
+        login_counts = (
+            filtered_df.groupby(["DT", "ZONE"])
+            .agg(Login_Count=('DE_ID', 'nunique'))
+            .reset_index()
         )
-    else:
-        st.info("No login data for this city/zone selection.")
+        if selected_zone == "All":
+            chart_zones = login_counts["ZONE"].unique()
+            if len(chart_zones) == 0:
+                st.info("No data for the selected filters.")
+                login_counts = pd.DataFrame()
+            else:
+                show_zone = st.selectbox("Select Zone to Plot (for chart below):", sorted(chart_zones))
+                login_counts = login_counts[login_counts["ZONE"] == show_zone]
+        else:
+            show_zone = selected_zone
+            login_counts = login_counts[login_counts["ZONE"] == show_zone]
 
-    # =========== HOURLY LOGIN DISTRIBUTION ===========
-    info_box(
-        "Hourly Login Distribution – Why does it matter?",
-        """
-- **Shows:** Number of DEs active (login > 0) per hour in a zone, plus total orders and recommended staffing status.
-- **Use Case:** Spot peak, slack, or balanced hours for optimal supply planning.
-- **Calculation:** Active DEs with login > 0 per hour.
-        """
-    )
+        if not login_counts.empty:
+            chart = alt.Chart(login_counts).mark_line(point=True).encode(
+                x=alt.X("DT:T", title="Date"),
+                y=alt.Y("Login_Count", title="No. of DEs Logged In"),
+                tooltip=[
+                    alt.Tooltip("DT:T", title="Date"),
+                    alt.Tooltip("Login_Count", title="Active DE Count"),
+                    alt.Tooltip("ZONE", title="Zone")
+                ]
+            ).properties(
+                title=f"Login Count per Day – {show_zone}"
+            ).interactive()
+            st.altair_chart(chart, use_container_width=True)
+            st.download_button(
+                "📥 Download Login Count (CSV)",
+                data=login_counts.to_csv(index=False),
+                file_name=f"{show_zone}_datewise_login_count.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No login data for this city/zone selection.")
+
+    # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
     st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
@@ -355,15 +401,7 @@ if uploaded_file:
     else:
         st.info("No hourly login data available in uploaded file.")
 
-    # =========== DEs LOGGED IN PER DAY ===========
-    info_box(
-        "DEs Logged In Per Day – Why drill down?",
-        """
-- **Shows:** Table of every DE who logged in each day—zone, city, orders, login mins, earnings, etc.
-- **Use Case:** Spot underperformers, idlers, or patterns. Validate regulars and check for fraud/bot logins.
-- **Calculation:** Filter DEs with login mins > 0 for each day.
-        """
-    )
+    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
@@ -383,18 +421,9 @@ if uploaded_file:
         mime="text/csv"
     )
 
-    # =========== ATTRITION RISK DES ===========
-    info_box(
-        "Attrition Risk DEs – What are we flagging?",
-        """
-- **Shows:** DEs who spent 3+ hours logged in but took <2 orders in a day—a classic disengagement or dissatisfaction sign.
-- **Why Flag:** These are your “flight risk” DEs—frustrated, underpaid, or ready to churn. 
-- **Calculation:** Filter where Login Mins ≥ 180 (3 hours) AND Total Orders < 2.
-- **Action:** Call and intervene now, before they leave.
-        """
-    )
+    # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
-    churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)].copy()
+    churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
     churn_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
@@ -408,24 +437,17 @@ if uploaded_file:
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
 
-    # =========== INDIVIDUAL DE-WISE VIEW ===========
-    info_box(
-        "Individual DE-wise View – What do I get here?",
-        """
-- **Shows:** Deep-dive into any single DE’s journey: active days, login pattern, orders, earnings, rejections, week-wise trend.
-- **Why Use:** Investigate complaints, performance issues, or fraud at individual level. Personalize retention/engagement.
-- **Metrics:** Includes all order, login, and earnings data per DE, by day/week.
-        """
-    )
+    # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
-        selected_de = st.selectbox("Choose DE ID to Explore", ["None"] + sorted(de_ids))
+        selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
         if selected_de != "None":
             de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-            de_name = de_data['DE_NAME'].iloc[0] if 'DE_NAME' in de_data.columns else ""
+            de_name = de_data['DE_NAME'].iloc[0]
             de_zone = de_data['ZONE'].iloc[0]
             de_city = de_data['CITY'].iloc[0]
+
             total_days = de_data.shape[0]
             total_login = de_data["TOTAL LOGIN MINS"].sum()
             total_orders = de_data["TOTAL ORDERS"].sum()
@@ -485,6 +507,7 @@ if uploaded_file:
                 ).properties(title=f"📊 {metric} by Week")
                 col.altair_chart(chart, use_container_width=True)
 
+            # --- Login Minutes vs Total Orders ---
             st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
             chart_df = de_data.sort_values("DT")
             base = alt.Chart(chart_df).encode(x="DT:T")
@@ -501,6 +524,7 @@ if uploaded_file:
                 use_container_width=True
             )
 
+            # --- Hourly Login vs Orders (Per Day) ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
             hourly_records = []
             for _, row in de_data.iterrows():
@@ -526,21 +550,13 @@ if uploaded_file:
             else:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-    # =========== NO SHOW DEs ===========
-    info_box(
-        "No-Show DEs – Why track this?",
-        """
-- **Shows:** DEs who were active in previous period but haven't logged in during current period.
-- **Why Track:** Instantly spot sudden supply loss, attrition, or operational blockers by zone/city.
-- **Calculation:** Compare unique DE IDs logged in across two periods.
-        """
-    )
+    # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     col_prev, col_curr = st.columns(2)
     with col_prev:
-        prev_dates = st.date_input("Select Previous Period", [])
+        prev_dates = st.date_input("🗕️ Select Previous Period", [])
     with col_curr:
-        curr_dates = st.date_input("Select Current Period", [])
+        curr_dates = st.date_input("🗕️ Select Current Period", [])
     if len(prev_dates) == 2 and len(curr_dates) == 2:
         prev_df = df[(df["DT"] >= prev_dates[0]) & (df["DT"] <= prev_dates[1])]
         curr_df = df[(df["DT"] >= curr_dates[0]) & (df["DT"] <= curr_dates[1])]
@@ -571,3 +587,6 @@ if uploaded_file:
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
+
+
+
