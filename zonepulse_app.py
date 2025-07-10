@@ -118,38 +118,26 @@ if uploaded_file:
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
-    with st.expander("💡 How to read this report (click to expand)"):
-        st.markdown("""
-Each row shows hour-wise stats for every city/zone.
+    with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
+    st.markdown("""
+This table shows, **hour by hour**, whether each zone is:
+- **Overstaffed** (⚠️): Too many DEs, not enough orders.
+- **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
+- **Balanced** (✅): Just right.
 
-- Overstaffed: Too many DEs, not enough orders.
-- Understaffed: DEs are busy, too few for the demand.
-- Balanced: All good.
+**Key Formula:**  
+Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
 
-Look for repeated 'Overstaffed' hours to trim idle supply, or 'Understaffed' to ramp up hiring/incentives.
-        """)
-    # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
-    with st.expander("💡 Login Utilization % Explained (click to expand)"):
-        st.markdown("""
-- **Login Utilization %** = (Avg Orders × 25 min) / (Avg Login Minutes) × 100.
-- Measures how efficiently active DEs are utilized each hour.
+**Thresholds:**  
+- **Instamart:**  
+  - Overstaffed: Orders/hr < 1.2 & Utilization < 30%  
+  - Understaffed: Orders/hr > 2.2 & Utilization > 70%  
+- **SwiggyFood:**  
+  - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
+  - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
 
-**Interpretation:**
-- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
-- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
-
-**Thresholds:**
-- **Instamart:**
-    - Overstaffed: Orders/hr < 1.2 & Utilization < 30%
-    - Understaffed: Orders/hr > 2.2 & Utilization > 70%
-    - Otherwise: Balanced
-- **SwiggyFood:**
-    - Overstaffed: Orders/hr < 1.0 & Utilization < 50%
-    - Understaffed: Orders/hr > 1.2 & Utilization > 57%
-    - Otherwise: Balanced
-
-⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
-        """)
+👉 Use this to spot when you need to cut idle supply, or ramp up hiring/incentives!
+""")
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
