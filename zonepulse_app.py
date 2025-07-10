@@ -352,19 +352,31 @@ Sharp dips = supply gaps. Spikes = excess idle.
     with st.expander("💡 Hourly Login Distribution Explained (click to expand)"):
         st.markdown("""
 Shows how many DEs are logged in by hour (across all dates), with zone status color.
-Green = Balanced. Orange = Overstaffed (trim supply). Red = Understaffed (ramp up!).
 
-Thresholds:
+- <span style='color:#43a047'><b>Green = Balanced</b></span>
+- <span style='color:#fb8c00'><b>Orange = Overstaffed (trim supply)</b></span>
+- <span style='color:#e53935'><b>Red = Understaffed (ramp up!)</b></span>
 
-Instamart:
-Overstaffed: Orders/hr < 1.2 & Utilization < 30%
-Understaffed: Orders/hr > 2.2 & Utilization > 70%
-Otherwise: Balanced
-SwiggyFood:
-Overstaffed: Orders/hr < 1.0 & Utilization < 50%
-Understaffed: Orders/hr > 1.2 & Utilization > 57%
-Otherwise: Balanced
-        """)
+<br>
+
+**Thresholds:**  
+<ul>
+<li><b>Instamart:</b>
+    <ul>
+        <li><b>Overstaffed:</b> Orders/hr < 1.2 & Utilization < 30%</li>
+        <li><b>Understaffed:</b> Orders/hr > 2.2 & Utilization > 70%</li>
+        <li><b>Otherwise:</b> Balanced</li>
+    </ul>
+</li>
+<li><b>SwiggyFood:</b>
+    <ul>
+        <li><b>Overstaffed:</b> Orders/hr < 1.0 & Utilization < 50%</li>
+        <li><b>Understaffed:</b> Orders/hr > 1.2 & Utilization > 57%</li>
+        <li><b>Otherwise:</b> Balanced</li>
+    </ul>
+</li>
+</ul>
+""", unsafe_allow_html=True)
 
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
