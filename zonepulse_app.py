@@ -48,6 +48,45 @@ st.markdown("""
 Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
+# ---------------------- ALWAYS-VISIBLE INFO BOX ----------------------
+with st.expander("ℹ️ How does this dashboard work? (Click for logic behind each view)", expanded=False):
+    st.markdown(
+        """
+        <div style='background:#e7f0fa;border-radius:7px;padding:18px 18px 8px 18px;border-left:6px solid #1a73e8; font-size:1.07em; line-height:1.68;'>
+        <b>**Login Utilization %**</b><br>
+        <span style="color:#1a73e8"><b>How efficiently DEs are being utilized.</b></span><br>
+        <b>Formula:</b> (Avg Orders × 25 min) / (Avg Login Minutes) × 100.<br>
+        <b>High Utilization:</b> DEs are busy.<br>
+        <b>Low Utilization:</b> DEs are idle.<br>
+        <hr>
+        <b>**Zone Status: Overstaffed / Understaffed / Balanced**</b><br>
+        <u>Instamart</u>:<br>
+        Overstaffed: Orders/hr &lt; 1.2 &amp; Utilization &lt; 30%<br>
+        Understaffed: Orders/hr &gt; 2.2 &amp; Utilization &gt; 70%<br>
+        <u>SwiggyFood</u>:<br>
+        Overstaffed: Orders/hr &lt; 1.0 &amp; Utilization &lt; 50%<br>
+        Understaffed: Orders/hr &gt; 1.2 &amp; Utilization &gt; 57%<br>
+        <i>Balanced: anything in between.</i>
+        <hr>
+        <b>**Rain Participation %**</b><br>
+        % of eligible DEs (logged in at/just before rain) who actually did a rain-tagged order.<br>
+        <b>Formula:</b> Rain DEs / Eligible Actives × 100<br>
+        <hr>
+        <b>**Attrition Risk DEs**</b><br>
+        DEs with &gt;3hr login but &lt;2 orders, or negative earnings.<br>
+        <hr>
+        <b>**No-Show DEs**</b><br>
+        DEs who were active last period, but missing now. Perfect for re-engagement.<br>
+        <hr>
+        <b>**Hourly Login Distribution**</b><br>
+        Shows DE and order count per hour with status (Overstaffed, Understaffed, Balanced).<br>
+        <hr>
+        <b>**Individual DE-wise View**</b><br>
+        All stats for a selected DE: orders, login, rejections, earnings—by week &amp; day.
+        </div>
+        """, unsafe_allow_html=True
+    )
+
 # ---------------------- FILE UPLOAD ----------------------
 uploaded_file = st.file_uploader("🔕️ Upload your DE Order vs Login File", type=["csv"])
 if uploaded_file:
@@ -90,45 +129,6 @@ if uploaded_file:
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-
-    # -------- BLUE INFO BOX: DASHBOARD LOGIC (UI EXPANDER) --------
-    with st.expander("ℹ️ How does this dashboard work? (Click for logic behind each view)", expanded=False):
-        st.markdown(
-            """
-            <div style='background:#e7f0fa;border-radius:7px;padding:18px 18px 8px 18px;border-left:6px solid #1a73e8; font-size:1.07em; line-height:1.68;'>
-            <b>**Login Utilization %**</b><br>
-            How efficiently DEs are being utilized.<br>
-            <b>Formula:</b> (Avg Orders × 25 min) / (Avg Login Minutes) × 100.<br>
-            - <b>High Utilization:</b> DEs are busy.<br>
-            - <b>Low Utilization:</b> DEs are idle.<br>
-            <hr>
-            <b>**Zone Status: Overstaffed / Understaffed / Balanced**</b><br>
-            <u>Instamart</u>:<br>
-            Overstaffed: Orders/hr &lt; 1.2 &amp; Utilization &lt; 30%<br>
-            Understaffed: Orders/hr &gt; 2.2 &amp; Utilization &gt; 70%<br>
-            <u>SwiggyFood</u>:<br>
-            Overstaffed: Orders/hr &lt; 1.0 &amp; Utilization &lt; 50%<br>
-            Understaffed: Orders/hr &gt; 1.2 &amp; Utilization &gt; 57%<br>
-            <i>Balanced: anything in between.</i>
-            <hr>
-            <b>**Rain Participation %**</b><br>
-            % of eligible DEs (logged in at/just before rain) who actually did a rain-tagged order.<br>
-            <b>Formula:</b> Rain DEs / Eligible Actives × 100<br>
-            <hr>
-            <b>**Attrition Risk DEs**</b><br>
-            DEs with &gt;3hr login but &lt;2 orders, or negative earnings.<br>
-            <hr>
-            <b>**No-Show DEs**</b><br>
-            DEs who were active last period, but missing now. Perfect for re-engagement.<br>
-            <hr>
-            <b>**Hourly Login Distribution**</b><br>
-            Shows DE and order count per hour with status (Overstaffed, Understaffed, Balanced).<br>
-            <hr>
-            <b>**Individual DE-wise View**</b><br>
-            All stats for a selected DE: orders, login, rejections, earnings—by week &amp; day.
-            </div>
-            """, unsafe_allow_html=True
-        )
 
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
@@ -181,6 +181,14 @@ if uploaded_file:
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
+    with st.expander("💡 Rain Participation Logic (click to expand)"):
+        st.markdown("""
+- **Eligible Active:** DE who logged in (any minute) at or before the first hour when rain started (`RFD_xx` > 0) on the rain day in that zone. (Login in rain start hour or previous hour)
+- **Rain DE:** Among eligible actives, delivered any rain-tagged order (`RAIN_FLAG` > 0).
+- **Participation %:** (Rain DEs) / (Eligible Actives) × 100.
+- **Why?** Measures commitment—only those present _for_ the rain are counted.
+        """)
+
     rain_flag_col = "RAIN_FLAG"
     rfd_cols = [col for col in df.columns if col.startswith("RFD_")]
 
