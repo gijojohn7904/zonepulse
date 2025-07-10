@@ -116,28 +116,28 @@ if uploaded_file:
 
 
 
-    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
+# ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+st.markdown("## 📊 Zone-Level Hourly Report")
+with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
     st.markdown("""
-This table shows, **hour by hour**, whether each zone is:
-- **Overstaffed** (⚠️): Too many DEs, not enough orders.
-- **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
-- **Balanced** (✅): Just right.
+    This table shows, **hour by hour**, whether each zone is:
+    - **Overstaffed** (⚠️): Too many DEs, not enough orders.
+    - **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
+    - **Balanced** (✅): Just right.
 
-**Key Formula:**  
-Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
+    **Key Formula:**  
+    Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
 
-**Thresholds:**  
-- **Instamart:**  
-  - Overstaffed: Orders/hr < 1.2 & Utilization < 30%  
-  - Understaffed: Orders/hr > 2.2 & Utilization > 70%  
-- **SwiggyFood:**  
-  - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
-  - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
+    **Thresholds:**  
+    - **Instamart:**  
+      - Overstaffed: Orders/hr < 1.2 & Utilization < 30%  
+      - Understaffed: Orders/hr > 2.2 & Utilization > 70%  
+    - **SwiggyFood:**  
+      - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
+      - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
 
-👉 Use this to spot when you need to cut idle supply, or ramp up hiring/incentives!
-""")
+    👉 Use this to spot when you need to cut idle supply, or ramp up hiring/incentives!
+    """)
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
