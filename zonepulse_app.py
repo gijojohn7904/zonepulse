@@ -114,6 +114,20 @@ if uploaded_file:
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
+
+
+    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
+    st.markdown("## 📊 Zone-Level Hourly Report")
+    with st.expander("💡 How to read this report (click to expand)"):
+        st.markdown("""
+Each row shows hour-wise stats for every city/zone.
+
+- Overstaffed: Too many DEs, not enough orders.
+- Understaffed: DEs are busy, too few for the demand.
+- Balanced: All good.
+
+Look for repeated 'Overstaffed' hours to trim idle supply, or 'Understaffed' to ramp up hiring/incentives.
+        """)
     # ---------------------- LOGIN UTILIZATION INFOBOX ----------------------
     with st.expander("💡 Login Utilization % Explained (click to expand)"):
         st.markdown("""
@@ -136,20 +150,6 @@ if uploaded_file:
 
 ⚠️ **High utilization** = DEs are busy (possible understaffing). **Low utilization** = DEs idle (possible overstaffing). Aim for ‘Balanced’.
         """)
-
-    # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-    st.markdown("## 📊 Zone-Level Hourly Report")
-    with st.expander("💡 How to read this report (click to expand)"):
-        st.markdown("""
-Each row shows hour-wise stats for every city/zone.
-
-- Overstaffed: Too many DEs, not enough orders.
-- Understaffed: DEs are busy, too few for the demand.
-- Balanced: All good.
-
-Look for repeated 'Overstaffed' hours to trim idle supply, or 'Understaffed' to ramp up hiring/incentives.
-        """)
-
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
