@@ -411,8 +411,7 @@ if uploaded_file:
         file_name=f"{selected_zone}_datewise_login_DEs.csv",
         mime="text/csv"
     )
-
-# ---------------------- ATTRITION RISK DES ----------------------
+    # ---------------------- ATTRITION RISK DES ----------------------
 st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
 negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
 churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
@@ -430,6 +429,8 @@ if not churn_df.empty:
                        file_name="churn_risk_DEs.csv", mime="text/csv")
 else:
     st.info("✅ No churn risk DEs found for the selected filters.")
+
+
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
