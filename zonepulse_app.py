@@ -120,6 +120,17 @@ if uploaded_file:
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
+    with st.expander("💡 How to read this report (click to expand)"):
+        st.markdown("""
+Each row shows hour-wise stats for every city/zone.
+
+- Overstaffed: Too many DEs, not enough orders.
+- Understaffed: DEs are busy, too few for the demand.
+- Balanced: All good.
+
+Look for repeated 'Overstaffed' hours to trim idle supply, or 'Understaffed' to ramp up hiring/incentives.
+        """)
+
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -165,12 +176,12 @@ if uploaded_file:
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
-    with st.expander("💡 Rain Participation Logic (click to expand)"):
+    with st.expander("💡 Rain Participation % Explained (click to expand)"):
         st.markdown("""
-- **Eligible Active:** DE who logged in (any minute) at or before the first hour when rain started (`RFD_xx` > 0) on the rain day in that zone. (Login in rain start hour or previous hour)
-- **Rain DE:** Among eligible actives, delivered any rain-tagged order (`RAIN_FLAG` > 0).
-- **Participation %:** (Rain DEs) / (Eligible Actives) × 100.
-- **Why?** Measures commitment—only those present _for_ the rain are counted.
+- **Eligible Actives:** DEs logged in at/just before the rain started in that zone.
+- **Rain DE:** Among those, who actually took a rain-tagged order.
+- **Participation %:** Rain DEs / Eligible Actives × 100
+- Why? Only those present _during_ rain can be counted as committed for surge/peak incentives.
         """)
 
     rain_flag_col = "RAIN_FLAG"
@@ -283,6 +294,12 @@ if uploaded_file:
 
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
+    with st.expander("💡 Datewise Login Explained (click to expand)"):
+        st.markdown("""
+Shows, for each date, how many DEs logged in to the selected zone.  
+Sharp dips = supply gaps. Spikes = excess idle.
+        """)
+
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
         if selected_city != "All":
@@ -332,6 +349,12 @@ if uploaded_file:
 
     # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
     st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
+    with st.expander("💡 Hourly Login Distribution Explained (click to expand)"):
+        st.markdown("""
+Shows how many DEs are logged in by hour (across all dates), with zone status color.
+Green = Balanced. Orange = Overstaffed (trim supply). Red = Understaffed (ramp up!).
+        """)
+
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
 
@@ -394,6 +417,13 @@ if uploaded_file:
 
     # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
+    with st.expander("💡 DE Login Table Explained (click to expand)"):
+        st.markdown("""
+Full DE-wise view for each day:  
+See login mins, orders, and other stats.  
+Filter, sort, or download for detailed ops action.
+        """)
+
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
@@ -414,6 +444,12 @@ if uploaded_file:
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+    with st.expander("💡 Attrition Risk Logic (click to expand)"):
+        st.markdown("""
+Flags DEs with >3hr login but <2 orders, or negative earnings.  
+Great for targeting those likely to quit, or at risk of disengagement!
+        """)
+
     negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
     churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
@@ -433,6 +469,11 @@ if uploaded_file:
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
+    with st.expander("💡 DE-wise Drilldown Explained (click to expand)"):
+        st.markdown("""
+Pick any DE and see their entire journey—login trends, order trends, week-on-week stats, and more.
+        """)
+
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
@@ -546,6 +587,12 @@ if uploaded_file:
 
     # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
+    with st.expander("💡 No-Show DEs Logic (click to expand)"):
+        st.markdown("""
+Find DEs who were present last period, but missing in the current period.  
+Perfect for win-back, reactivation calls, and targeted support.
+        """)
+
     col_prev, col_curr = st.columns(2)
     with col_prev:
         prev_dates = st.date_input("🗕️ Select Previous Period", [])
@@ -581,5 +628,3 @@ if uploaded_file:
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
-
-
