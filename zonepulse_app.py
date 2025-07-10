@@ -443,7 +443,7 @@ Filter, sort, or download for detailed ops action.
     )
 
     # ---------------------- ATTRITION RISK DES ----------------------
-    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+    st.markdown("## ⚠️ Attrition Risk DEs")
     with st.expander("💡 Attrition Risk Logic (click to expand)"):
         st.markdown("""
 Flags DEs with >3hr login but <2 orders, or negative earnings.  
