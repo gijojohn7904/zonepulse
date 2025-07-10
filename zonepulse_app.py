@@ -115,9 +115,9 @@ if uploaded_file:
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
-st.markdown("## 📊 Zone-Level Hourly Report")
-with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
-    st.markdown("""
+    st.markdown("## 📊 Zone-Level Hourly Report")
+    with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
+        st.markdown("""
 This table shows, **hour by hour**, whether each zone is:
 - **Overstaffed** (⚠️): Too many DEs, not enough orders.
 - **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
@@ -142,50 +142,48 @@ Measures how efficiently DEs are being used each hour.
 ⚠️ **High utilization** = DEs are busy (possible understaffing).  
 **Low utilization** = DEs idle (possible overstaffing).  
 **Aim for ‘Balanced’ – Use this to spot when you need to cut idle supply or ramp up hiring/incentives!**
-    """)
-hourly_data = []
-for hr in range(24):
-    fd_col = f"FD_{str(hr).zfill(2)}"
-    lh_col = f"LH_{str(hr).zfill(2)}"
-    if fd_col in df.columns and lh_col in df.columns:
-        hour_df = df[df[lh_col] > 10]
-        if hour_df.empty:
-            continue
-        group_cols = ["DT", "CITY", "ZONE"]
-        zone_group = hour_df.groupby(group_cols).agg(
-            Total_Orders=(fd_col, 'sum'),
-            Avg_Orders=(fd_col, 'mean'),
-            Avg_Login_Mins=(lh_col, 'mean'),
-            Active_DEs=(lh_col, lambda x: (x > 10).sum())
-        ).reset_index()
-        zone_group["Hour"] = hr
-        zone_group["Login_Utilization_%"] = zone_group.apply(
-            lambda row: min(100, (row["Avg_Orders"] * 25 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0, axis=1
-        )
-        if vertical == "Instamart":
-            zone_group["Recommendation"] = zone_group.apply(
-                lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
-                else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
-                else "✅ Balanced",
-                axis=1
+        """)
+    hourly_data = []
+    for hr in range(24):
+        fd_col = f"FD_{str(hr).zfill(2)}"
+        lh_col = f"LH_{str(hr).zfill(2)}"
+        if fd_col in df.columns and lh_col in df.columns:
+            hour_df = df[df[lh_col] > 10]
+            if hour_df.empty:
+                continue
+            group_cols = ["DT", "CITY", "ZONE"]
+            zone_group = hour_df.groupby(group_cols).agg(
+                Total_Orders=(fd_col, 'sum'),
+                Avg_Orders=(fd_col, 'mean'),
+                Avg_Login_Mins=(lh_col, 'mean'),
+                Active_DEs=(lh_col, lambda x: (x > 10).sum())
+            ).reset_index()
+            zone_group["Hour"] = hr
+            zone_group["Login_Utilization_%"] = zone_group.apply(
+                lambda row: min(100, (row["Avg_Orders"] * 25 / row["Avg_Login_Mins"]) * 100) if row["Avg_Login_Mins"] > 0 else 0, axis=1
             )
-        else:
-            zone_group["Recommendation"] = zone_group.apply(
-                lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
-                else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
-                else "✅ Balanced",
-                axis=1
-            )
-        hourly_data.append(zone_group)
-if hourly_data:
-    zone_hour_df = pd.concat(hourly_data)
-    st.dataframe(zone_hour_df.sort_values(by=["DT", "CITY", "ZONE", "Hour"]))
-    st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
-else:
-    zone_hour_df = pd.DataFrame()
-    st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
-
-
+            if vertical == "Instamart":
+                zone_group["Recommendation"] = zone_group.apply(
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1.2 and row["Login_Utilization_%"] < 30)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 2.2 and row["Login_Utilization_%"] > 70)
+                    else "✅ Balanced",
+                    axis=1
+                )
+            else:
+                zone_group["Recommendation"] = zone_group.apply(
+                    lambda row: "⚠️ Overstaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) < 1 and row["Login_Utilization_%"] < 50)
+                    else "🔴 Understaffed" if (row["Avg_Orders"] / (row["Avg_Login_Mins"] / 60) > 1.2 and row["Login_Utilization_%"] > 57)
+                    else "✅ Balanced",
+                    axis=1
+                )
+            hourly_data.append(zone_group)
+    if hourly_data:
+        zone_hour_df = pd.concat(hourly_data)
+        st.dataframe(zone_hour_df.sort_values(by=["DT", "CITY", "ZONE", "Hour"]))
+        st.download_button("📥 Download Hourly Report (CSV)", data=zone_hour_df.to_csv(index=False), file_name="zone_hourly_report.csv", mime="text/csv")
+    else:
+        zone_hour_df = pd.DataFrame()
+        st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
