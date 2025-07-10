@@ -391,25 +391,34 @@ if uploaded_file:
     if not (hourly_cols and not df.empty and not zone_hour_df.empty):
         st.info("No hourly login data available in uploaded file.")
 
-    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
-    st.markdown("#### 🔎 DEs Logged In Per Day")
-    de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
-    if "REJECTED_ORDERS" in df.columns:
-        de_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in df.columns:
-        de_cols.append("DAILY_EARNINGS")
-    de_login_data = (
-        df[df["TOTAL LOGIN MINS"] > 0]
-        .loc[:, [c for c in de_cols if c in df.columns]]
-        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-    )
-    st.dataframe(de_login_data, use_container_width=True)
-    st.download_button(
-        "📥 Download DE Login Detail (CSV)",
-        data=de_login_data.to_csv(index=False),
-        file_name=f"{selected_zone}_datewise_login_DEs.csv",
-        mime="text/csv"
-    )
+    # ========== DE-LEVEL TABLE: ALL ELIGIBLE ROWS + ANNOTATED COLUMNS ==========
+
+all_de_rows = []
+seed_cols = list(df.columns)  # All columns from uploaded file
+
+for zone in impacted_zones:
+    eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
+    zone_df = rain_day_df[(rain_day_df["ZONE"] == zone) & (rain_day_df["DE_ID"].isin(eligible_de_ids))]
+    for _, row in zone_df.iterrows():
+        # Copy all columns for this row
+        base_row = {col: row.get(col, None) for col in seed_cols}
+        did_rain_order = "Yes" if row["DE_ID"] in rain_des else "No"
+        rain_skipper = "Yes" if row["DE_ID"] not in rain_des else "No"
+        base_row.update({
+            "Logged_in_before_or_at_Rain": "Yes",
+            "Did_Rain_Order": did_rain_order,
+            "Rain_Skipper": rain_skipper,
+            "Rain_Start_Hour": rain_start_hr
+        })
+        all_de_rows.append(base_row)
+
+de_df_full = pd.DataFrame(all_de_rows)
+st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
+if not de_df_full.empty:
+    st.dataframe(de_df_full)
+    st.download_button("📥 Download Full Rain Participation Table (CSV)", data=de_df_full.to_csv(index=False), file_name="rain_participation_full.csv")
+else:
+    st.info("No eligible DEs found for rain participation criteria.")
 
     # ---------------------- ATTRITION RISK DES ----------------------
     st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
