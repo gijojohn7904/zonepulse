@@ -33,6 +33,20 @@ check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
+
+# ---- Custom Blue Style for Expanders ----
+st.markdown("""
+<style>
+/* Make expanders header blue */
+.streamlit-expanderHeader {
+    background-color: #1976d2 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    border-radius: 5px 5px 0 0 !important;
+    padding-left: 10px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
