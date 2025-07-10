@@ -274,7 +274,7 @@ if uploaded_file:
                         all_de_rows.append(base_row)
 
             de_df_full = pd.DataFrame(all_de_rows)
-            st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
+            st.markdown("### 🔎 DE-Level Rain Participation Data (Full Data)")
             if not de_df_full.empty:
                 st.dataframe(de_df_full)
                 st.download_button("📥 Download Full Rain Participation Table (CSV)", data=de_df_full.to_csv(index=False), file_name="rain_participation_full.csv")
@@ -413,7 +413,7 @@ if uploaded_file:
     )
 
     # ---------------------- ATTRITION RISK DES ----------------------
-    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+    st.markdown("## ⚠️ Attrition Risk DEs")
     negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
     churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
