@@ -412,22 +412,24 @@ if uploaded_file:
         mime="text/csv"
     )
 
-    # ---------------------- ATTRITION RISK DES ----------------------
-    st.markdown("## ⚠️ Attrition Risk DEs")
-    negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
-    churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
-    churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
-    churn_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
-    if "REJECTED_ORDERS" in df.columns:
-        churn_cols.append("REJECTED_ORDERS")
-    if "DAILY_EARNINGS" in df.columns:
-        churn_cols.append("DAILY_EARNINGS")
-    if not churn_df.empty:
-        st.dataframe(churn_df[churn_cols].sort_values(by=["CITY", "ZONE", "DT", "DE_NAME"]))
-        st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
-                           file_name="churn_risk_DEs.csv", mime="text/csv")
-    else:
-        st.info("✅ No churn risk DEs found for the selected filters.")
+# ---------------------- ATTRITION RISK DES ----------------------
+st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
+churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
+churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
+churn_cols = [
+    "DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "ONBOARDING_DATE", "Login Hours", "TOTAL ORDERS"
+]
+if "REJECTED_ORDERS" in df.columns:
+    churn_cols.append("REJECTED_ORDERS")
+if "DAILY_EARNINGS" in df.columns:
+    churn_cols.append("DAILY_EARNINGS")
+if not churn_df.empty:
+    st.dataframe(churn_df[churn_cols].sort_values(by=["CITY", "ZONE", "DT", "DE_NAME"]))
+    st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
+                       file_name="churn_risk_DEs.csv", mime="text/csv")
+else:
+    st.info("✅ No churn risk DEs found for the selected filters.")
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
     st.markdown("## 👤 Individual DE-wise View")
