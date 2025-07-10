@@ -250,35 +250,36 @@ if uploaded_file:
             st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
             st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
 
-# ========== DE-LEVEL TABLE: FULL SEED DATA + RAIN FLAGS ==========
-all_de_rows = []
-seed_cols = list(df.columns)  # All columns from uploaded file
+            # ========== DE-LEVEL TABLE: FULL SEED DATA + RAIN FLAGS ==========
+            all_de_rows = []
+            seed_cols = list(df.columns)  # All columns from uploaded file
 
-for zone in impacted_zones:
-    eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
-    zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
-    city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-    for de in eligible_de_ids:
-        sub = zone_df[zone_df["DE_ID"] == de]
-        if not sub.empty:
-            base_row = sub.iloc[0][seed_cols].to_dict()  # get all original columns for DE
-        else:
-            base_row = {col: None for col in seed_cols}
-        base_row.update({
-            "Logged_in_before_or_at_Rain": "Yes",
-            "Did_Rain_Order": "Yes" if de in rain_des else "No",
-            "Rain_Skipper": "Yes" if de not in rain_des else "No",
-            "Rain_Start_Hour": rain_start_hr
-        })
-        all_de_rows.append(base_row)
+            for zone in impacted_zones:
+                eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
+                zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
+                city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
+                for de in eligible_de_ids:
+                    sub = zone_df[zone_df["DE_ID"] == de]
+                    if not sub.empty:
+                        base_row = sub.iloc[0][seed_cols].to_dict()  # all columns from seed
+                    else:
+                        base_row = {col: None for col in seed_cols}
+                    base_row.update({
+                        "Logged_in_before_or_at_Rain": "Yes",
+                        "Did_Rain_Order": "Yes" if de in rain_des else "No",
+                        "Rain_Skipper": "Yes" if de not in rain_des else "No",
+                        "Rain_Start_Hour": rain_start_hr
+                    })
+                    all_de_rows.append(base_row)
 
-de_df_full = pd.DataFrame(all_de_rows)
-st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
-if not de_df_full.empty:
-    st.dataframe(de_df_full)
-    st.download_button("📥 Download Full Rain Participation Table (CSV)", data=de_df_full.to_csv(index=False), file_name="rain_participation_full.csv")
-else:
-    st.info("No eligible DEs found for rain participation criteria.")
+            de_df_full = pd.DataFrame(all_de_rows)
+            st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
+            if not de_df_full.empty:
+                st.dataframe(de_df_full)
+                st.download_button("📥 Download Full Rain Participation Table (CSV)", data=de_df_full.to_csv(index=False), file_name="rain_participation_full.csv")
+            else:
+                st.info("No eligible DEs found for rain participation criteria.")
+
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
@@ -411,8 +412,9 @@ else:
     )
 
     # ---------------------- ATTRITION RISK DES ----------------------
-    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2)")
-    churn_df = df[(df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)]
+    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+    negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
+    churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
     churn_cols = ["DE_ID", "DE_NAME", "CITY", "ZONE", "DT", "WEEK", "Login Hours", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
@@ -423,7 +425,7 @@ else:
         st.dataframe(churn_df[churn_cols].sort_values(by=["CITY", "ZONE", "DT", "DE_NAME"]))
         st.download_button("🔕 Download Churn Risk Report (CSV)", data=churn_df[churn_cols].to_csv(index=False),
                            file_name="churn_risk_DEs.csv", mime="text/csv")
-    if churn_df.empty:
+    else:
         st.info("✅ No churn risk DEs found for the selected filters.")
 
     # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
