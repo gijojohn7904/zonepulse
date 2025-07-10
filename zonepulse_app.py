@@ -250,35 +250,35 @@ if uploaded_file:
             st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
             st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
 
-            # ========== DE-LEVEL TABLE ==========
-            all_de = []
-            for zone in impacted_zones:
-                eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
-                zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
-                city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-                for de in eligible_de_ids:
-                    sub = zone_df[zone_df["DE_ID"] == de]
-                    de_name = sub["DE_NAME"].iloc[0] if not sub.empty and "DE_NAME" in sub.columns else ""
-                    rain_login = "Yes" if de in rain_des else "No"
-                    rain_skip = "Yes" if de not in rain_des else "No"
-                    all_de.append({
-                        "DE_ID": de,
-                        "DE_NAME": de_name,
-                        "Zone": zone,
-                        "City": city,
-                        "Rain_Start_Hour": rain_start_hr,
-                        "Logged_in_before_or_at_Rain": "Yes",
-                        "Did_Rain_Order": rain_login,
-                        "Rain_Skipper": rain_skip
-                    })
-            de_df = pd.DataFrame(all_de)
-            st.markdown("### 🔎 DE-Level Rain Participation Table")
-            if not de_df.empty:
-                st.dataframe(de_df)
-                st.download_button("📥 Download Rain Participation Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_participation_full.csv")
-            if de_df.empty:
-                st.info("No eligible DEs found for rain participation criteria.")
+# ========== DE-LEVEL TABLE: FULL SEED DATA + RAIN FLAGS ==========
+all_de_rows = []
+seed_cols = list(df.columns)  # All columns from uploaded file
 
+for zone in impacted_zones:
+    eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
+    zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
+    city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
+    for de in eligible_de_ids:
+        sub = zone_df[zone_df["DE_ID"] == de]
+        if not sub.empty:
+            base_row = sub.iloc[0][seed_cols].to_dict()  # get all original columns for DE
+        else:
+            base_row = {col: None for col in seed_cols}
+        base_row.update({
+            "Logged_in_before_or_at_Rain": "Yes",
+            "Did_Rain_Order": "Yes" if de in rain_des else "No",
+            "Rain_Skipper": "Yes" if de not in rain_des else "No",
+            "Rain_Start_Hour": rain_start_hr
+        })
+        all_de_rows.append(base_row)
+
+de_df_full = pd.DataFrame(all_de_rows)
+st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
+if not de_df_full.empty:
+    st.dataframe(de_df_full)
+    st.download_button("📥 Download Full Rain Participation Table (CSV)", data=de_df_full.to_csv(index=False), file_name="rain_participation_full.csv")
+else:
+    st.info("No eligible DEs found for rain participation criteria.")
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
     if not df.empty:
