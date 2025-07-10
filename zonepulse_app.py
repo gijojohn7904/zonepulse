@@ -353,6 +353,17 @@ Sharp dips = supply gaps. Spikes = excess idle.
         st.markdown("""
 Shows how many DEs are logged in by hour (across all dates), with zone status color.
 Green = Balanced. Orange = Overstaffed (trim supply). Red = Understaffed (ramp up!).
+
+Thresholds:
+
+Instamart:
+Overstaffed: Orders/hr < 1.2 & Utilization < 30%
+Understaffed: Orders/hr > 2.2 & Utilization > 70%
+Otherwise: Balanced
+SwiggyFood:
+Overstaffed: Orders/hr < 1.0 & Utilization < 50%
+Understaffed: Orders/hr > 1.2 & Utilization > 57%
+Otherwise: Balanced
         """)
 
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
