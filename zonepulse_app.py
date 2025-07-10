@@ -167,7 +167,7 @@ if uploaded_file:
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
     with st.expander("💡 Rain Participation Logic (click to expand)"):
         st.markdown("""
-- **Eligible Active:** DE who logged in (any minute) at or before the first hour when rain started (`RFD_xx` > 0) on the rain day in that zone.
+- **Eligible Active:** DE who logged in (any minute) at or before the first hour when rain started (`RFD_xx` > 0) on the rain day in that zone. (Login in rain start hour or previous hour)
 - **Rain DE:** Among eligible actives, delivered any rain-tagged order (`RAIN_FLAG` > 0).
 - **Participation %:** (Rain DEs) / (Eligible Actives) × 100.
 - **Why?** Measures commitment—only those present _for_ the rain are counted.
@@ -208,14 +208,19 @@ if uploaded_file:
             for zone in impacted_zones:
                 zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
                 city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-                rain_hours = [int(col[-2:]) for col in rfd_cols if zone_df[col].sum() > 0]
+                # Find first rain hour for this zone
+                rain_hours = [int(col[-2:]) for col in rfd_cols if col in zone_df.columns and zone_df[col].sum() > 0]
                 rain_start_hr = min(rain_hours) if rain_hours else 0
+                # For eligibility: login in rain hour or previous hour (if available)
+                login_cols = []
+                if rain_start_hr == 0:
+                    login_cols = [f"LH_{str(rain_start_hr).zfill(2)}"]
+                else:
+                    login_cols = [f"LH_{str(rain_start_hr-1).zfill(2)}", f"LH_{str(rain_start_hr).zfill(2)}"]
+                login_cols = [col for col in login_cols if col in zone_df.columns]
                 eligible_de_ids = set(
-                    zone_df.loc[
-                        zone_df[[f"LH_{str(hr).zfill(2)}" for hr in range(rain_start_hr + 1) if f"LH_{str(hr).zfill(2)}" in zone_df.columns]].sum(axis=1) > 0,
-                        "DE_ID"
-                    ]
-                )
+                    zone_df.loc[zone_df[login_cols].sum(axis=1) > 0, "DE_ID"]
+                ) if login_cols else set()
                 rain_des = set(zone_df.loc[(zone_df["DE_ID"].isin(eligible_de_ids)) & (zone_df[rain_flag_col] > 0), "DE_ID"])
                 participation_pct = (len(rain_des) / len(eligible_de_ids)) * 100 if eligible_de_ids else None
                 rain_part.append({
@@ -257,20 +262,16 @@ if uploaded_file:
             for zone in impacted_zones:
                 eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
                 zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
-                city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-                for de in eligible_de_ids:
-                    sub = zone_df[zone_df["DE_ID"] == de]
-                    if not sub.empty:
-                        base_row = sub.iloc[0][seed_cols].to_dict()  # all columns from seed
-                    else:
-                        base_row = {col: None for col in seed_cols}
-                    base_row.update({
-                        "Logged_in_before_or_at_Rain": "Yes",
-                        "Did_Rain_Order": "Yes" if de in rain_des else "No",
-                        "Rain_Skipper": "Yes" if de not in rain_des else "No",
-                        "Rain_Start_Hour": rain_start_hr
-                    })
-                    all_de_rows.append(base_row)
+                for _, row in zone_df.iterrows():
+                    if row["DE_ID"] in eligible_de_ids:
+                        base_row = {col: row.get(col, None) for col in seed_cols}
+                        base_row.update({
+                            "Logged_in_before_or_at_Rain": "Yes",
+                            "Did_Rain_Order": "Yes" if row["DE_ID"] in rain_des else "No",
+                            "Rain_Skipper": "Yes" if row["DE_ID"] not in rain_des else "No",
+                            "Rain_Start_Hour": rain_start_hr
+                        })
+                        all_de_rows.append(base_row)
 
             de_df_full = pd.DataFrame(all_de_rows)
             st.markdown("### 🔎 DE-Level Rain Participation Table (Full Data)")
