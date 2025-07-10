@@ -161,125 +161,123 @@ if uploaded_file:
     else:
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
-# ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
-st.markdown("---")
-st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
-with st.expander("💡 Rain Participation Logic (click to expand)"):
-    st.markdown("""
+
+    # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
+    st.markdown("---")
+    st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
+    with st.expander("💡 Rain Participation Logic (click to expand)"):
+        st.markdown("""
 - **Eligible Active:** DE who logged in (any minute) at or before the first hour when rain started (`RFD_xx` > 0) on the rain day in that zone.
 - **Rain DE:** Among eligible actives, delivered any rain-tagged order (`RAIN_FLAG` > 0).
 - **Participation %:** (Rain DEs) / (Eligible Actives) × 100.
 - **Why?** Measures commitment—only those present _for_ the rain are counted.
-    """)
+        """)
 
-rain_flag_col = "RAIN_FLAG"
-rfd_cols = [col for col in df.columns if col.startswith("RFD_")]
+    rain_flag_col = "RAIN_FLAG"
+    rfd_cols = [col for col in df.columns if col.startswith("RFD_")]
 
-if rain_flag_col not in df.columns or not rfd_cols:
-    st.warning("No RAIN_FLAG or per-hour RFD columns in uploaded file. Please include for this analysis.")
-else:
-    rain_dates = sorted(df.loc[df[rain_flag_col] == 1, "DT"].unique())
-    if not rain_dates:
-        st.warning("No rain dates found in the selected period!")
+    if rain_flag_col not in df.columns or not rfd_cols:
+        st.warning("No RAIN_FLAG or per-hour RFD columns in uploaded file. Please include for this analysis.")
     else:
-        col_rain, col_zone = st.columns(2)
-        with col_rain:
-            selected_rain_date = st.selectbox(
-                "🌧️ Select Rain Date",
-                rain_dates,
-                format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
-            )
+        rain_dates = sorted(df.loc[df[rain_flag_col] == 1, "DT"].unique())
+        if not rain_dates:
+            st.warning("No rain dates found in the selected period!")
+        else:
+            col_rain, col_zone = st.columns(2)
+            with col_rain:
+                selected_rain_date = st.selectbox(
+                    "🌧️ Select Rain Date",
+                    rain_dates,
+                    format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
+                )
 
-        impacted_zones = df[(df["DT"] == selected_rain_date) & (df[rain_flag_col] == 1)]["ZONE"].unique()
-        impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
-        with col_zone:
-            zone_options = ["All"] + list(impacted_zones)
-            selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
-        rain_day_df = df[(df["DT"] == selected_rain_date) & (df["ZONE"].isin(impacted_zones))]
-        if selected_rain_zone != "All":
-            rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
-            impacted_zones = [selected_rain_zone]
+            impacted_zones = df[(df["DT"] == selected_rain_date) & (df[rain_flag_col] == 1)]["ZONE"].unique()
+            impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
+            with col_zone:
+                zone_options = ["All"] + list(impacted_zones)
+                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+            rain_day_df = df[(df["DT"] == selected_rain_date) & (df["ZONE"].isin(impacted_zones))]
+            if selected_rain_zone != "All":
+                rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
+                impacted_zones = [selected_rain_zone]
 
-        # =========== ZONE-LEVEL TABLE ===========
-        rain_part = []
-        zone_eligible_map = dict()  # for fast lookup in DE-level table
+            # =========== ZONE-LEVEL TABLE ===========
+            rain_part = []
+            zone_eligible_map = dict()
 
-        for zone in impacted_zones:
-            zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
-            city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-            # 1. Find first rain hour
-            rain_hours = [int(col[-2:]) for col in rfd_cols if zone_df[col].sum() > 0]
-            rain_start_hr = min(rain_hours) if rain_hours else 0
-            # 2. Eligible actives: logged in any minute at/before rain_start_hr
-            eligible_de_ids = set(
-                zone_df.loc[
-                    zone_df[[f"LH_{str(hr).zfill(2)}" for hr in range(rain_start_hr + 1) if f"LH_{str(hr).zfill(2)}" in zone_df.columns]].sum(axis=1) > 0,
-                    "DE_ID"
-                ]
-            )
-            # 3. Rain DEs: delivered any rain-tagged order
-            rain_des = set(zone_df.loc[(zone_df["DE_ID"].isin(eligible_de_ids)) & (zone_df[rain_flag_col] > 0), "DE_ID"])
-            participation_pct = (len(rain_des) / len(eligible_de_ids)) * 100 if eligible_de_ids else None
-            rain_part.append({
-                "Zone": zone, "City": city,
-                "Rain_Start_Hour": rain_start_hr,
-                "Eligible_Actives": len(eligible_de_ids),
-                "Rain_DEs": len(rain_des),
-                "Rain_Participation_%": round(participation_pct, 2) if participation_pct is not None else None
-            })
-            zone_eligible_map[zone] = (eligible_de_ids, rain_des, rain_start_hr)
-
-        zone_part_df = pd.DataFrame(rain_part)
-        zone_part_df = zone_part_df.sort_values(by="Rain_Participation_%", ascending=False)
-
-        # ========== ZONE HEATMAP & TABLE ==========
-        if not zone_part_df.empty:
-            heatmap = alt.Chart(zone_part_df).mark_rect().encode(
-                x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
-                y=alt.Y('Rain_Participation_%:Q', title='Rain Participation %'),
-                color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
-                tooltip=['Zone', 'City', 'Rain_Start_Hour', 'Eligible_Actives', 'Rain_DEs', 'Rain_Participation_%']
-            ).properties(
-                width=400, height=350, title="Rain Participation % by Zone"
-            )
-            st.altair_chart(heatmap, use_container_width=True)
-
-        def color_code(val):
-            if pd.isnull(val): return "background-color: #eee"
-            elif val < 50: return "background-color: #ffcccc"
-            elif val < 80: return "background-color: #ffe699"
-            else: return "background-color: #c6efce"
-        st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
-        st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
-
-        # ========== DE-LEVEL TABLE ==========
-        all_de = []
-        for zone in impacted_zones:
-            eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
-            zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
-            city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-            for de in eligible_de_ids:
-                sub = zone_df[zone_df["DE_ID"] == de]
-                de_name = sub["DE_NAME"].iloc[0] if not sub.empty and "DE_NAME" in sub.columns else ""
-                rain_login = "Yes" if de in rain_des else "No"
-                rain_skip = "Yes" if de not in rain_des else "No"
-                all_de.append({
-                    "DE_ID": de,
-                    "DE_NAME": de_name,
-                    "Zone": zone,
-                    "City": city,
+            for zone in impacted_zones:
+                zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
+                city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
+                rain_hours = [int(col[-2:]) for col in rfd_cols if zone_df[col].sum() > 0]
+                rain_start_hr = min(rain_hours) if rain_hours else 0
+                eligible_de_ids = set(
+                    zone_df.loc[
+                        zone_df[[f"LH_{str(hr).zfill(2)}" for hr in range(rain_start_hr + 1) if f"LH_{str(hr).zfill(2)}" in zone_df.columns]].sum(axis=1) > 0,
+                        "DE_ID"
+                    ]
+                )
+                rain_des = set(zone_df.loc[(zone_df["DE_ID"].isin(eligible_de_ids)) & (zone_df[rain_flag_col] > 0), "DE_ID"])
+                participation_pct = (len(rain_des) / len(eligible_de_ids)) * 100 if eligible_de_ids else None
+                rain_part.append({
+                    "Zone": zone, "City": city,
                     "Rain_Start_Hour": rain_start_hr,
-                    "Logged_in_before_or_at_Rain": "Yes",
-                    "Did_Rain_Order": rain_login,
-                    "Rain_Skipper": rain_skip
+                    "Eligible_Actives": len(eligible_de_ids),
+                    "Rain_DEs": len(rain_des),
+                    "Rain_Participation_%": round(participation_pct, 2) if participation_pct is not None else None
                 })
-        de_df = pd.DataFrame(all_de)
-        st.markdown("### 🔎 DE-Level Rain Participation Table")
-        if not de_df.empty:
-            st.dataframe(de_df)
-            st.download_button("📥 Download Rain Participation Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_participation_full.csv")
-        if de_df.empty:
-            st.info("No eligible DEs found for rain participation criteria.")
+                zone_eligible_map[zone] = (eligible_de_ids, rain_des, rain_start_hr)
+
+            zone_part_df = pd.DataFrame(rain_part)
+            zone_part_df = zone_part_df.sort_values(by="Rain_Participation_%", ascending=False)
+
+            # ========== ZONE HEATMAP & TABLE ==========
+            if not zone_part_df.empty:
+                heatmap = alt.Chart(zone_part_df).mark_rect().encode(
+                    x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
+                    y=alt.Y('Rain_Participation_%:Q', title='Rain Participation %'),
+                    color=alt.Color('Rain_Participation_%:Q', scale=alt.Scale(scheme='redyellowgreen', domain=[0, 100])),
+                    tooltip=['Zone', 'City', 'Rain_Start_Hour', 'Eligible_Actives', 'Rain_DEs', 'Rain_Participation_%']
+                ).properties(
+                    width=400, height=350, title="Rain Participation % by Zone"
+                )
+                st.altair_chart(heatmap, use_container_width=True)
+
+            def color_code(val):
+                if pd.isnull(val): return "background-color: #eee"
+                elif val < 50: return "background-color: #ffcccc"
+                elif val < 80: return "background-color: #ffe699"
+                else: return "background-color: #c6efce"
+            st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
+            st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
+
+            # ========== DE-LEVEL TABLE ==========
+            all_de = []
+            for zone in impacted_zones:
+                eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
+                zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
+                city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
+                for de in eligible_de_ids:
+                    sub = zone_df[zone_df["DE_ID"] == de]
+                    de_name = sub["DE_NAME"].iloc[0] if not sub.empty and "DE_NAME" in sub.columns else ""
+                    rain_login = "Yes" if de in rain_des else "No"
+                    rain_skip = "Yes" if de not in rain_des else "No"
+                    all_de.append({
+                        "DE_ID": de,
+                        "DE_NAME": de_name,
+                        "Zone": zone,
+                        "City": city,
+                        "Rain_Start_Hour": rain_start_hr,
+                        "Logged_in_before_or_at_Rain": "Yes",
+                        "Did_Rain_Order": rain_login,
+                        "Rain_Skipper": rain_skip
+                    })
+            de_df = pd.DataFrame(all_de)
+            st.markdown("### 🔎 DE-Level Rain Participation Table")
+            if not de_df.empty:
+                st.dataframe(de_df)
+                st.download_button("📥 Download Rain Participation Table (CSV)", data=de_df.to_csv(index=False), file_name="rain_participation_full.csv")
+            if de_df.empty:
+                st.info("No eligible DEs found for rain participation criteria.")
 
     # ---------------------- DATE-WISE LOGIN COUNT (POINTED LINE CHART W/ TOOLTIP) ----------------------
     st.markdown("## 📅 Date-wise Login Count for Selected Zone")
@@ -327,7 +325,7 @@ else:
                 file_name=f"{show_zone}_datewise_login_count.csv",
                 mime="text/csv"
             )
-        if login_counts.empty:
+        else:
             st.info("No login data for this city/zone selection.")
 
     # ---------------------- HOURLY LOGIN DISTRIBUTION FOR SELECTED ZONE ----------------------
