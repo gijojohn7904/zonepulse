@@ -36,18 +36,18 @@ st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layo
 
 st.markdown("""
 <style>
-/* For Streamlit >= 1.31, targets expander header */
 div[data-testid="stExpander"] > details > summary {
-    background-color: #1976d2 !important;
-    color: #fff !important;
+    background-color: #e3f0fc !important;    /* Light Blue */
+    color: #145190 !important;               /* Deep Blue for Text */
     font-weight: 600 !important;
     border-radius: 7px 7px 0 0 !important;
     padding: 10px 16px !important;
     transition: background 0.2s;
     cursor: pointer;
+    border: 1px solid #b6d4fe !important;
 }
 div[data-testid="stExpander"] > details[open] > summary {
-    border-bottom: 2px solid #1976d2 !important;
+    border-bottom: 2px solid #90caf9 !important;
 }
 </style>
 """, unsafe_allow_html=True)
