@@ -421,7 +421,7 @@ else:
     st.info("No eligible DEs found for rain participation criteria.")
 
     # ---------------------- ATTRITION RISK DES ----------------------
-    st.markdown("## ⚠️ Attrition Risk DEs (Login > 3hr, Orders < 2, or Negative Earnings)")
+    st.markdown("## ⚠️ Attrition Risk DEs ")
     negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
     churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
