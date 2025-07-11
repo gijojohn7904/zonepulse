@@ -209,7 +209,7 @@ Measures how efficiently DEs are being used each hour.
             col_rain, col_zone = st.columns(2)
             with col_rain:
                 selected_rain_date = st.selectbox(
-                    "🌧️ Select Rain Date",
+                    " Select Rain Date",
                     rain_dates,
                     format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
                 )
@@ -218,7 +218,7 @@ Measures how efficiently DEs are being used each hour.
             impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
             with col_zone:
                 zone_options = ["All"] + list(impacted_zones)
-                selected_rain_zone = st.selectbox("🏴‍☠️ Select Zone (Rain Impacted Only)", zone_options)
+                selected_rain_zone = st.selectbox(" Select Zone (Rain Impacted Only)", zone_options)
             rain_day_df = df[(df["DT"] == selected_rain_date) & (df["ZONE"].isin(impacted_zones))]
             if selected_rain_zone != "All":
                 rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
