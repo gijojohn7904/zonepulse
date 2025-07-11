@@ -118,7 +118,7 @@ if uploaded_file:
     st.markdown("## 📊 Zone-Level Hourly Report")
     with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
         st.markdown("""
-         
+         <br><br>
 This table shows, **hour by hour**, whether each zone is:
 - **Overstaffed** (⚠️): Too many DEs, not enough orders.
 - **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
