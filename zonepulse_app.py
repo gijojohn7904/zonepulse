@@ -561,46 +561,30 @@ Pick any DE and see their entire journey—login trends, order trends, week-on-w
                     letter-spacing:0.5px;
                     color:#1a1a1a;
                 '>
-                🗓️ Attendance / No-Show Pattern
+                📅 Attendance/No-Show Pattern
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            # ---- Attendance/No-Show Pattern Visualization ----
-            attendance_df = de_data.copy()
-            attendance_df["Present"] = attendance_df["TOTAL LOGIN MINS"].apply(lambda x: 1 if x > 0 else 0)
-            if not attendance_df.empty:
-                all_dates = pd.date_range(attendance_df["DT"].min(), attendance_df["DT"].max())
-                full_df = pd.DataFrame({"DT": all_dates})
-                attendance_df = pd.merge(full_df, attendance_df[["DT", "Present"]], on="DT", how="left")
-                attendance_df["Present"] = attendance_df["Present"].fillna(0)
-                attendance_df["Attendance_Label"] = attendance_df["Present"].apply(lambda x: "✅ Present" if x==1 else "❌ Absent")
-                total_days = len(attendance_df)
-                present_days = int(attendance_df["Present"].sum())
-                absent_days = total_days - present_days
-                st.markdown(f"""
-                    <div style="background:#e3f0fc;padding:14px 22px;border-radius:9px;margin-bottom:20px;">
-                        <span style="font-size:1.1em; font-weight:600;">Active Days:</span> <span style="color:#43a047;"><b>{present_days}</b></span> /
-                        <span style="font-size:1.1em; font-weight:600;">Total Days:</span> <b>{total_days}</b> &nbsp; | &nbsp;
-                        <span style="color:#e53935;"><b>Absents: {absent_days}</b></span>
-                    </div>
-                """, unsafe_allow_html=True)
-                attendance_chart = alt.Chart(attendance_df).mark_bar(size=20).encode(
-                    x=alt.X("DT:T", title="Date"),
-                    y=alt.Y("Present", title="", axis=alt.Axis(values=[0,1], labels=False)),
-                    color=alt.Color("Attendance_Label:N", scale=alt.Scale(domain=["✅ Present", "❌ Absent"], range=["#43a047", "#e53935"]), legend=None),
-                    tooltip=[
-                        alt.Tooltip("DT:T", title="Date"),
-                        alt.Tooltip("Attendance_Label", title="Status")
-                    ]
-                ).properties(
-                    title="Daily Attendance Pattern",
-                    width=630,
-                    height=130
-                )
-                st.altair_chart(attendance_chart, use_container_width=True)
-            else:
-                st.info("No attendance data available for this DE.")
+            # Attendance plot
+            de_data_sorted = de_data.sort_values("DT")
+            attendance_chart = alt.Chart(de_data_sorted).mark_bar(size=18).encode(
+                x=alt.X("DT:T", title="Date"),
+                y=alt.Y("TOTAL LOGIN MINS", title="Login Minutes"),
+                color=alt.condition(
+                    alt.datum["TOTAL LOGIN MINS"] > 0, 
+                    alt.value("#43a047"),  # Present
+                    alt.value("#e53935")   # Absent
+                ),
+                tooltip=[
+                    alt.Tooltip("DT:T", title="Date"),
+                    alt.Tooltip("TOTAL LOGIN MINS", title="Login Minutes"),
+                    alt.Tooltip("TOTAL ORDERS", title="Orders")
+                ]
+            ).properties(
+                title=f"Attendance Pattern – {selected_de} ({de_name})"
+            )
+            st.altair_chart(attendance_chart, use_container_width=True)
 
             # --- Hourly Login vs Orders (Per Day) ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
