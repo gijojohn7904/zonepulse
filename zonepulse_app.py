@@ -592,49 +592,49 @@ if "DE_ID" in df.columns:
             use_container_width=True
         )
 
-# --- Attendance/No-Show Pattern (Modern UI) ---
-st.markdown("""
-### 📅 Attendance/No-Show Pattern
-Get a quick visual snapshot of attendance:  
-Green = Present, Gray = Absent
-""")
+        # --- Attendance/No-Show Pattern (Modern UI) ---
+        st.markdown("""
+        ### 📅 Attendance/No-Show Pattern
+        Get a quick visual snapshot of attendance:  
+        Green = Present, Gray = Absent
+        """)
 
-de_data_sorted = de_data.sort_values("DT").copy()
-de_data_sorted["Present"] = np.where(de_data_sorted["TOTAL LOGIN MINS"] > 0, "Present", "Absent")
+        de_data_sorted = de_data.sort_values("DT").copy()
+        de_data_sorted["Present"] = np.where(de_data_sorted["TOTAL LOGIN MINS"] > 0, "Present", "Absent")
 
-present_count = (de_data_sorted["Present"] == "Present").sum()
-absent_count = (de_data_sorted["Present"] == "Absent").sum()
+        present_count = (de_data_sorted["Present"] == "Present").sum()
+        absent_count = (de_data_sorted["Present"] == "Absent").sum()
 
-st.markdown(
-    f"<div style='margin-bottom: 12px; font-size: 1.1em;'>"
-    f"<span style='color: #43a047; font-weight: 600;'>{present_count} Present</span> &nbsp; | &nbsp; "
-    f"<span style='color: #b0b0b0; font-weight: 600;'>{absent_count} Absent</span>"
-    f"</div>",
-    unsafe_allow_html=True
-)
+        st.markdown(
+        f"<div style='margin-bottom: 12px; font-size: 1.1em;'>"
+        f"<span style='color: #43a047; font-weight: 600;'>{present_count} Present</span> &nbsp; | &nbsp; "
+        f"<span style='color: #b0b0b0; font-weight: 600;'>{absent_count} Absent</span>"
+        f"</div>",
+        unsafe_allow_html=True
+        )
 
-attendance_chart = alt.Chart(de_data_sorted).mark_rect(
-    width=24, height=36, cornerRadiusTopLeft=7, cornerRadiusTopRight=7
-).encode(
-    x=alt.X("DT:T", title=None, axis=alt.Axis(format="%d-%b", labelAngle=-30, labelFontSize=11, ticks=False)),
-    color=alt.Color(
+        attendance_chart = alt.Chart(de_data_sorted).mark_rect(
+        width=24, height=36, cornerRadiusTopLeft=7, cornerRadiusTopRight=7
+        ).encode(
+        x=alt.X("DT:T", title=None, axis=alt.Axis(format="%d-%b", labelAngle=-30, labelFontSize=11, ticks=False)),
+        color=alt.Color(
         "Present:N",
         scale=alt.Scale(domain=["Present", "Absent"], range=["#43a047", "#ececec"]),
         legend=alt.Legend(title="Attendance", labelFontSize=13)
-    ),
-    tooltip=[
+        ),
+        tooltip=[
         alt.Tooltip("DT:T", title="Date", format="%A, %d %b %Y"),
         alt.Tooltip("Present", title="Attendance"),
         alt.Tooltip("TOTAL LOGIN MINS", title="Login Minutes"),
         alt.Tooltip("TOTAL ORDERS", title="Orders")
     ]
-).properties(
-    width=28 * len(de_data_sorted),
-    height=48,
-    title="Attendance Calendar"
-)
+        ).properties(
+        width=28 * len(de_data_sorted),
+        height=48,
+        title="Attendance Calendar"
+        )
 
-st.altair_chart(attendance_chart, use_container_width=True)
+        st.altair_chart(attendance_chart, use_container_width=True)
 
 
         # --- Hourly Login vs Orders (Per Day) ---
