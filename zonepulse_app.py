@@ -116,8 +116,8 @@ if uploaded_file:
 
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
-with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
-    st.markdown("""
+    with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
+        st.markdown("""
 <br><br>
 This table shows, hour by hour, whether each zone is:
 
@@ -126,7 +126,7 @@ This table shows, hour by hour, whether each zone is:
 - **Balanced (✅):** Just right.
 
 **Key Formula:**  
-Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
+Login Utilization % = (Avg Orders * 25 min) / (Avg Login Minutes) * 100
 
 **Thresholds:**  
 - **Instamart:**  
@@ -137,7 +137,7 @@ Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
   - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
 
 👉 Use this to spot when you need to cut idle supply, or ramp up hiring/incentives!
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
