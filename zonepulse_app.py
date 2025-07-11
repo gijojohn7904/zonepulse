@@ -117,12 +117,15 @@ if uploaded_file:
     # ---------------------- ZONE-LEVEL HOURLY REPORT ----------------------
     st.markdown("## 📊 Zone-Level Hourly Report")
     with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
-        st.markdown("""
-         <br><br>
-This table shows, **hour by hour**, whether each zone is:
-- **Overstaffed** (⚠️): Too many DEs, not enough orders.
-- **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
-- **Balanced** (✅): Just right.
+    st.markdown("""
+<br><br>
+This table shows, hour by hour, whether each zone is:
+
+- **Overstaffed (⚠️):** Too many DEs, not enough orders.
+- **Understaffed (🔴):** Too few DEs, everyone’s overloaded.
+- **Balanced (✅):** Just right.
+""", unsafe_allow_html=True)
+
 
 **Key Formula:**  
 Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100  
