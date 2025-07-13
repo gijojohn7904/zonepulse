@@ -33,11 +33,12 @@ check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
+
 st.markdown("""
 <style>
 div[data-testid="stExpander"] > details > summary {
-    background-color: #e3f0fc !important;
-    color: #145190 !important;
+    background-color: #e3f0fc !important;    /* Light Blue */
+    color: #145190 !important;               /* Deep Blue for Text */
     font-weight: 600 !important;
     border-radius: 7px 7px 0 0 !important;
     padding: 10px 16px !important;
@@ -80,8 +81,10 @@ if uploaded_file:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
 
+    # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
 
+    # ------ FILTERS ------
     col1, col2 = st.columns(2)
     with col1:
         vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
@@ -107,6 +110,7 @@ if uploaded_file:
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
 
+    # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
@@ -120,7 +124,8 @@ This table shows, **hour by hour**, whether each zone is:
 - **Balanced** (✅): Just right.
 
 **Key Formula:**  
-Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
+Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100  
+Measures how efficiently DEs are being used each hour.
 
 **Thresholds:**  
 - **Instamart:**  
@@ -129,6 +134,10 @@ Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
 - **SwiggyFood:**  
   - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
   - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
+
+⚠️ **High utilization** = DEs are busy (possible understaffing).  
+**Low utilization** = DEs idle (possible overstaffing).  
+**Aim for ‘Balanced’ – Use this to spot when you need to cut idle supply or ramp up hiring/incentives!**
         """)
     hourly_data = []
     for hr in range(24):
@@ -252,45 +261,45 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
             st.info("No hourly login data found for this selection.")
     else:
         st.info("No hourly login data available in uploaded file.")
-# ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
+
+    # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
     with st.expander("💡 DE Login Table Explained (click to expand)"):
         st.markdown("""
-        Full DE-wise view for each day:
-        See login mins, orders, and every hour’s activity (login & order count).
-        Filter, sort, or download for detailed ops action.
-        Pro tip: For Excel pivots/analysis, download the full table below!
-        """)
+Full DE-wise view for each day:  
+See login mins, orders, and every hour’s activity (login & order count).  
+Filter, sort, or download for detailed ops action.  
+Pro tip: For Excel pivots/analysis, download the full table below!
+    """)
 
-# Collect all available hourly login/order columns
-lh_cols = [col for col in df.columns if col.startswith("LH_")]
-fd_cols = [col for col in df.columns if col.startswith("FD_")]
+    lh_cols = [col for col in df.columns if col.startswith("LH_")]
+    fd_cols = [col for col in df.columns if col.startswith("FD_")]
 
-# Build the full list for the detailed daily DE tracker
-de_cols = [
-    "DT", "CITY", "ZONE", "DE_ID", "DE_NAME",
-    "TOTAL LOGIN MINS", "TOTAL ORDERS"
-] + lh_cols + fd_cols
+    de_cols = [
+        "DT", "CITY", "ZONE", "DE_ID", "DE_NAME",
+        "TOTAL LOGIN MINS", "TOTAL ORDERS"
+    ] + lh_cols + fd_cols
 
-if "REJECTED_ORDERS" in df.columns:
-    de_cols.append("REJECTED_ORDERS")
-if "DAILY_EARNINGS" in df.columns:
-    de_cols.append("DAILY_EARNINGS")
+    if "REJECTED_ORDERS" in df.columns:
+        de_cols.append("REJECTED_ORDERS")
+    if "DAILY_EARNINGS" in df.columns:
+        de_cols.append("DAILY_EARNINGS")
 
-de_login_data = (
-    df[df["TOTAL LOGIN MINS"] > 0]
-    .loc[:, [c for c in de_cols if c in df.columns]]
-    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-)
+    de_login_data = (
+        df[df["TOTAL LOGIN MINS"] > 0]
+        .loc[:, [c for c in de_cols if c in df.columns]]
+        .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+    )
 
-st.dataframe(de_login_data, use_container_width=True)
+    st.dataframe(de_login_data, use_container_width=True)
 
-st.download_button(
-    "📥 Download DE Login Detail (CSV)",
-    data=de_login_data.to_csv(index=False),
-    file_name=f"{selected_zone}_datewise_login_DEs.csv",
-    mime="text/csv"
-)
+    st.download_button(
+        "📥 Download DE Login Detail (CSV)",
+        data=de_login_data.to_csv(index=False),
+        file_name=f"{selected_zone}_datewise_login_DEs.csv",
+        mime="text/csv"
+    )
+
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
