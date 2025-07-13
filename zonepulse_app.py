@@ -253,14 +253,14 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
     else:
         st.info("No hourly login data available in uploaded file.")
 # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
-st.markdown("#### 🔎 DEs Logged In Per Day")
-with st.expander("💡 DE Login Table Explained (click to expand)"):
-    st.markdown("""
-Full DE-wise view for each day:  
-See login mins, orders, and every hour’s activity (login & order count).  
-Filter, sort, or download for detailed ops action.  
-Pro tip: For Excel pivots/analysis, download the full table below!
-    """)
+    st.markdown("#### 🔎 DEs Logged In Per Day")
+    with st.expander("💡 DE Login Table Explained (click to expand)"):
+        st.markdown("""
+        Full DE-wise view for each day:
+        See login mins, orders, and every hour’s activity (login & order count).
+        Filter, sort, or download for detailed ops action.
+        Pro tip: For Excel pivots/analysis, download the full table below!
+        """)
 
 # Collect all available hourly login/order columns
 lh_cols = [col for col in df.columns if col.startswith("LH_")]
