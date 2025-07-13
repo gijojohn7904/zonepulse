@@ -253,44 +253,44 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
     else:
         st.info("No hourly login data available in uploaded file.")
 # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
-st.markdown("#### 🔎 DEs Logged In Per Day")
-with st.expander("💡 DE Login Table Explained (click to expand)"):
-    st.markdown("""
-Full DE-wise view for each day:  
-See login mins, orders, and every hour’s activity (login & order count).  
-Filter, sort, or download for detailed ops action.  
-Pro tip: For Excel pivots/analysis, download the full table below!
-    """)
+       st.markdown("#### 🔎 DEs Logged In Per Day")
+       with st.expander("💡 DE Login Table Explained (click to expand)"):
+       st.markdown("""
+       Full DE-wise view for each day:  
+       See login mins, orders, and every hour’s activity (login & order count).  
+       Filter, sort, or download for detailed ops action.  
+       Pro tip: For Excel pivots/analysis, download the full table below!
+       """)
 
-# Collect all available hourly login/order columns
-lh_cols = [col for col in df.columns if col.startswith("LH_")]
-fd_cols = [col for col in df.columns if col.startswith("FD_")]
+       # Collect all available hourly login/order columns
+       lh_cols = [col for col in df.columns if col.startswith("LH_")]
+       fd_cols = [col for col in df.columns if col.startswith("FD_")]
 
-# Build the full list for the detailed daily DE tracker
-de_cols = [
-    "DT", "CITY", "ZONE", "DE_ID", "DE_NAME",
-    "TOTAL LOGIN MINS", "TOTAL ORDERS"
-] + lh_cols + fd_cols
+       # Build the full list for the detailed daily DE tracker
+       de_cols = [
+      "DT", "CITY", "ZONE", "DE_ID", "DE_NAME",
+      "TOTAL LOGIN MINS", "TOTAL ORDERS"  
+      ] + lh_cols + fd_cols
 
-if "REJECTED_ORDERS" in df.columns:
-    de_cols.append("REJECTED_ORDERS")
-if "DAILY_EARNINGS" in df.columns:
-    de_cols.append("DAILY_EARNINGS")
+      if "REJECTED_ORDERS" in df.columns:
+      de_cols.append("REJECTED_ORDERS")
+      if "DAILY_EARNINGS" in df.columns:
+      de_cols.append("DAILY_EARNINGS")
 
-de_login_data = (
-    df[df["TOTAL LOGIN MINS"] > 0]
-    .loc[:, [c for c in de_cols if c in df.columns]]
-    .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
-)
+      de_login_data = (
+      df[df["TOTAL LOGIN MINS"] > 0]
+      .loc[:, [c for c in de_cols if c in df.columns]]
+      .sort_values(["DT", "CITY", "ZONE", "DE_ID"])
+      )
 
-st.dataframe(de_login_data, use_container_width=True)
+      st.dataframe(de_login_data, use_container_width=True)
 
-st.download_button(
-    "📥 Download DE Login Detail (CSV)",
-    data=de_login_data.to_csv(index=False),
-    file_name=f"{selected_zone}_datewise_login_DEs.csv",
-    mime="text/csv"
-)
+      st.download_button(
+      "📥 Download DE Login Detail (CSV)",
+      data=de_login_data.to_csv(index=False),
+      file_name=f"{selected_zone}_datewise_login_DEs.csv",
+      mime="text/csv"
+      )
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
