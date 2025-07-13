@@ -28,30 +28,23 @@ def check_password():
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
-
 check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
 st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layout="wide")
-
 st.markdown("""
 <style>
 div[data-testid="stExpander"] > details > summary {
-    background-color: #e3f0fc !important;    /* Light Blue */
-    color: #145190 !important;               /* Deep Blue for Text */
-    font-weight: 600 !important;
-    border-radius: 7px 7px 0 0 !important;
-    padding: 10px 16px !important;
-    transition: background 0.2s;
-    cursor: pointer;
-    border: 1px solid #b6d4fe !important;
+    background-color: #e3f0fc !important; color: #145190 !important;
+    font-weight: 600 !important; border-radius: 7px 7px 0 0 !important;
+    padding: 10px 16px !important; transition: background 0.2s;
+    cursor: pointer; border: 1px solid #b6d4fe !important;
 }
 div[data-testid="stExpander"] > details[open] > summary {
     border-bottom: 2px solid #90caf9 !important;
 }
 </style>
 """, unsafe_allow_html=True)
-
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
@@ -60,10 +53,8 @@ st.markdown("""
     Please handle this information responsibly, in accordance with company data policies.
     </div>
     """, unsafe_allow_html=True)
-
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
-
 Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
@@ -75,15 +66,12 @@ if uploaded_file:
     if "CITY" not in df.columns or "ZONE" not in df.columns:
         st.error("Missing CITY or ZONE column in file.")
         st.stop()
-
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
-
     # Detect vertical
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
-
     # ------ FILTERS ------
     col1, col2 = st.columns(2)
     with col1:
@@ -95,7 +83,6 @@ if uploaded_file:
         selected_city = st.selectbox("🏩 Choose City", city_options)
         if selected_city != "All":
             df = df[df["CITY"] == selected_city]
-
     col3, col4 = st.columns(2)
     with col3:
         zones = sorted(df["ZONE"].dropna().unique())
@@ -109,7 +96,6 @@ if uploaded_file:
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-
     # Add total login mins/orders
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
@@ -127,10 +113,6 @@ This table shows, **hour by hour**, whether each zone is:
 Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100  
 Measures how efficiently DEs are being used each hour.
 
-**Interpretation:**  
-- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
-- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
-
 **Thresholds:**  
 - **Instamart:**  
   - Overstaffed: Orders/hr < 1.2 & Utilization < 30%  
@@ -138,10 +120,6 @@ Measures how efficiently DEs are being used each hour.
 - **SwiggyFood:**  
   - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
   - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
-
-⚠️ **High utilization** = DEs are busy (possible understaffing).  
-**Low utilization** = DEs idle (possible overstaffing).  
-**Aim for ‘Balanced’ – Use this to spot when you need to cut idle supply or ramp up hiring/incentives!**
         """)
     hourly_data = []
     for hr in range(24):
@@ -185,6 +163,102 @@ Measures how efficiently DEs are being used each hour.
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
+    # ============ ⏰ Zone-wise Hourly Login Distribution (Dual Axis) =============
+    st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
+    with st.expander("💡 Hourly Login Distribution Explained (click to expand)"):
+        st.markdown("""
+Shows how many DEs are logged in by hour (across all dates), with zone status color.
+
+- <span style='color:#43a047'><b>Green = Balanced</b></span>
+- <span style='color:#fb8c00'><b>Orange = Overstaffed (trim supply)</b></span>
+- <span style='color:#e53935'><b>Red = Understaffed (ramp up!)</b></span>
+<br>
+**Thresholds:**  
+<ul>
+<li><b>Instamart:</b>
+    <ul>
+        <li><b>Overstaffed:</b> Orders/hr < 1.2 & Utilization < 30%</li>
+        <li><b>Understaffed:</b> Orders/hr > 2.2 & Utilization > 70%</li>
+        <li><b>Otherwise:</b> Balanced</li>
+    </ul>
+</li>
+<li><b>SwiggyFood:</b>
+    <ul>
+        <li><b>Overstaffed:</b> Orders/hr < 1.0 & Utilization < 50%</li>
+        <li><b>Understaffed:</b> Orders/hr > 1.2 & Utilization > 57%</li>
+        <li><b>Otherwise:</b> Balanced</li>
+    </ul>
+</li>
+</ul>
+""", unsafe_allow_html=True)
+    hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
+    order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
+    if hourly_cols and not df.empty and not zone_hour_df.empty:
+        hourly_df = df.copy()
+        show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
+        show_city = selected_city if selected_city != "All" else (zone_hour_df["CITY"].iloc[0] if not zone_hour_df.empty else None)
+        if selected_city != "All":
+            hourly_df = hourly_df[hourly_df["CITY"] == selected_city]
+        if selected_zone != "All":
+            hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
+        elif show_zone is not None:
+            hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]
+
+        hour_data = []
+        for hr in range(24):
+            lh_col = f"LH_{str(hr).zfill(2)}"
+            fd_col = f"FD_{str(hr).zfill(2)}"
+            if lh_col in hourly_df.columns:
+                count = (hourly_df[lh_col] > 0).sum()
+                orders = hourly_df[fd_col].sum() if fd_col in hourly_df.columns else 0
+                rec_row = zone_hour_df[
+                    (zone_hour_df["Hour"] == hr) &
+                    (zone_hour_df["ZONE"] == show_zone) &
+                    (zone_hour_df["CITY"] == show_city)
+                ]
+                rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "✅ Balanced"
+                hour_data.append({
+                    "Hour": f"{str(hr).zfill(2)}:00",
+                    "Active DEs": count,
+                    "Active Orders": int(orders),
+                    "Recommendation": rec
+                })
+        hour_chart_df = pd.DataFrame(hour_data)
+        color_scale = alt.Scale(
+            domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
+            range=["#e53935", "#fb8c00", "#43a047"]
+        )
+        if not hour_chart_df.empty:
+            bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
+                x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
+                y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)", axis=alt.Axis(titleColor="#43a047")),
+                color=alt.Color("Recommendation:N", scale=color_scale, legend=alt.Legend(title="Hour Status")),
+                tooltip=[
+                    alt.Tooltip("Hour", title="Hour"),
+                    alt.Tooltip("Active DEs", title="Logged In DEs"),
+                    alt.Tooltip("Active Orders", title="Order Count"),
+                    alt.Tooltip("Recommendation", title="Staffing Status"),
+                ]
+            )
+            line = alt.Chart(hour_chart_df).mark_line(point=True, strokeWidth=3, color="#ff7f0e").encode(
+                x=alt.X("Hour", sort=list(hour_chart_df["Hour"])),
+                y=alt.Y("Active Orders", axis=alt.Axis(title="Order Count", titleColor="#ff7f0e"), scale=alt.Scale(zero=True)),
+                tooltip=[
+                    alt.Tooltip("Hour", title="Hour"),
+                    alt.Tooltip("Active Orders", title="Order Count"),
+                ]
+            )
+            chart = alt.layer(bar, line).resolve_scale(
+                y='independent'
+            ).properties(
+                title=f"Hourly Login vs Orders – {show_zone if show_zone else ''}"
+            )
+            st.altair_chart(chart.interactive(), use_container_width=True)
+        if hour_chart_df.empty:
+            st.info("No hourly login data found for this selection.")
+    if not (hourly_cols and not df.empty and not zone_hour_df.empty):
+        st.info("No hourly login data available in uploaded file.")
+
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
@@ -193,12 +267,9 @@ Measures how efficiently DEs are being used each hour.
 - **Eligible Actives:** DEs logged in at/just before the rain started in that zone.
 - **Rain DE:** Among those, who actually took a rain-tagged order.
 - **Participation %:** Rain DEs / Eligible Actives × 100
-- Why? Only those present _during_ rain can be counted as committed for surge/peak incentives.
         """)
-
     rain_flag_col = "RAIN_FLAG"
     rfd_cols = [col for col in df.columns if col.startswith("RFD_")]
-
     if rain_flag_col not in df.columns or not rfd_cols:
         st.warning("No RAIN_FLAG or per-hour RFD columns in uploaded file. Please include for this analysis.")
     else:
@@ -213,7 +284,6 @@ Measures how efficiently DEs are being used each hour.
                     rain_dates,
                     format_func=lambda d: pd.to_datetime(d).strftime("%b %d, %Y") if hasattr(d, "strftime") else str(d)
                 )
-
             impacted_zones = df[(df["DT"] == selected_rain_date) & (df[rain_flag_col] == 1)]["ZONE"].unique()
             impacted_zones = sorted([z for z in impacted_zones if pd.notnull(z)])
             with col_zone:
@@ -223,18 +293,13 @@ Measures how efficiently DEs are being used each hour.
             if selected_rain_zone != "All":
                 rain_day_df = rain_day_df[rain_day_df["ZONE"] == selected_rain_zone]
                 impacted_zones = [selected_rain_zone]
-
-            # =========== ZONE-LEVEL TABLE ===========
             rain_part = []
             zone_eligible_map = dict()
-
             for zone in impacted_zones:
                 zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
                 city = zone_df["CITY"].iloc[0] if not zone_df.empty else ""
-                # Find first rain hour for this zone
                 rain_hours = [int(col[-2:]) for col in rfd_cols if col in zone_df.columns and zone_df[col].sum() > 0]
                 rain_start_hr = min(rain_hours) if rain_hours else 0
-                # For eligibility: login in rain hour or previous hour (if available)
                 login_cols = []
                 if rain_start_hr == 0:
                     login_cols = [f"LH_{str(rain_start_hr).zfill(2)}"]
@@ -254,11 +319,8 @@ Measures how efficiently DEs are being used each hour.
                     "Rain_Participation_%": round(participation_pct, 2) if participation_pct is not None else None
                 })
                 zone_eligible_map[zone] = (eligible_de_ids, rain_des, rain_start_hr)
-
             zone_part_df = pd.DataFrame(rain_part)
             zone_part_df = zone_part_df.sort_values(by="Rain_Participation_%", ascending=False)
-
-            # ========== ZONE HEATMAP & TABLE ==========
             if not zone_part_df.empty:
                 heatmap = alt.Chart(zone_part_df).mark_rect().encode(
                     x=alt.X('Zone:N', title='Zone', sort=list(zone_part_df["Zone"])),
@@ -269,7 +331,6 @@ Measures how efficiently DEs are being used each hour.
                     width=400, height=350, title="Rain Participation % by Zone"
                 )
                 st.altair_chart(heatmap, use_container_width=True)
-
             def color_code(val):
                 if pd.isnull(val): return "background-color: #eee"
                 elif val < 50: return "background-color: #ffcccc"
@@ -277,11 +338,9 @@ Measures how efficiently DEs are being used each hour.
                 else: return "background-color: #c6efce"
             st.dataframe(zone_part_df.style.applymap(color_code, subset=["Rain_Participation_%"]))
             st.download_button("📥 Download Zone Rain Participation (CSV)", data=zone_part_df.to_csv(index=False), file_name="zone_rain_participation.csv")
-
-            # ========== DE-LEVEL TABLE: FULL SEED DATA + RAIN FLAGS ==========
+            # ========== DE-LEVEL TABLE ==========
             all_de_rows = []
-            seed_cols = list(df.columns)  # All columns from uploaded file
-
+            seed_cols = list(df.columns)
             for zone in impacted_zones:
                 eligible_de_ids, rain_des, rain_start_hr = zone_eligible_map[zone]
                 zone_df = rain_day_df[rain_day_df["ZONE"] == zone]
@@ -295,7 +354,6 @@ Measures how efficiently DEs are being used each hour.
                             "Rain_Start_Hour": rain_start_hr
                         })
                         all_de_rows.append(base_row)
-
             de_df_full = pd.DataFrame(all_de_rows)
             st.markdown("### 🔎 DE-Level Rain Participation Data (Full Data)")
             if not de_df_full.empty:
@@ -311,7 +369,6 @@ Measures how efficiently DEs are being used each hour.
 Shows, for each date, how many DEs logged in to the selected zone.  
 Sharp dips = supply gaps. Spikes = excess idle.
         """)
-
     if not df.empty:
         filter_mask = (df["TOTAL LOGIN MINS"] > 0)
         if selected_city != "All":
@@ -319,7 +376,6 @@ Sharp dips = supply gaps. Spikes = excess idle.
         if selected_zone != "All":
             filter_mask &= (df["ZONE"] == selected_zone)
         filtered_df = df[filter_mask].copy()
-
         login_counts = (
             filtered_df.groupby(["DT", "ZONE"])
             .agg(Login_Count=('DE_ID', 'nunique'))
@@ -336,7 +392,6 @@ Sharp dips = supply gaps. Spikes = excess idle.
         else:
             show_zone = selected_zone
             login_counts = login_counts[login_counts["ZONE"] == show_zone]
-
         if not login_counts.empty:
             chart = alt.Chart(login_counts).mark_line(point=True).encode(
                 x=alt.X("DT:T", title="Date"),
@@ -359,108 +414,6 @@ Sharp dips = supply gaps. Spikes = excess idle.
         else:
             st.info("No login data for this city/zone selection.")
 
-st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
-with st.expander("💡 Hourly Login Distribution Explained (click to expand)"):
-    st.markdown("""
-Shows how many DEs are logged in by hour (across all dates), with zone status color.
-
-- <span style='color:#43a047'><b>Green = Balanced</b></span>
-- <span style='color:#fb8c00'><b>Orange = Overstaffed (trim supply)</b></span>
-- <span style='color:#e53935'><b>Red = Understaffed (ramp up!)</b></span>
-
-<br>
-
-**Thresholds:**  
-<ul>
-<li><b>Instamart:</b>
-    <ul>
-        <li><b>Overstaffed:</b> Orders/hr < 1.2 & Utilization < 30%</li>
-        <li><b>Understaffed:</b> Orders/hr > 2.2 & Utilization > 70%</li>
-        <li><b>Otherwise:</b> Balanced</li>
-    </ul>
-</li>
-<li><b>SwiggyFood:</b>
-    <ul>
-        <li><b>Overstaffed:</b> Orders/hr < 1.0 & Utilization < 50%</li>
-        <li><b>Understaffed:</b> Orders/hr > 1.2 & Utilization > 57%</li>
-        <li><b>Otherwise:</b> Balanced</li>
-    </ul>
-</li>
-</ul>
-""", unsafe_allow_html=True)
-
-hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
-order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
-
-if hourly_cols and not df.empty and not zone_hour_df.empty:
-    hourly_df = df.copy()
-    show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
-    show_city = selected_city if selected_city != "All" else (zone_hour_df["CITY"].iloc[0] if not zone_hour_df.empty else None)
-    if selected_city != "All":
-        hourly_df = hourly_df[hourly_df["CITY"] == selected_city]
-    if selected_zone != "All":
-        hourly_df = hourly_df[hourly_df["ZONE"] == selected_zone]
-    elif show_zone is not None:
-        hourly_df = hourly_df[hourly_df["ZONE"] == show_zone]
-
-    hour_data = []
-    for hr in range(24):
-        lh_col = f"LH_{str(hr).zfill(2)}"
-        fd_col = f"FD_{str(hr).zfill(2)}"
-        if lh_col in hourly_df.columns:
-            count = (hourly_df[lh_col] > 0).sum()
-            orders = hourly_df[fd_col].sum() if fd_col in hourly_df.columns else 0
-            rec_row = zone_hour_df[
-                (zone_hour_df["Hour"] == hr) &
-                (zone_hour_df["ZONE"] == show_zone) &
-                (zone_hour_df["CITY"] == show_city)
-            ]
-            rec = rec_row["Recommendation"].iloc[0] if not rec_row.empty else "✅ Balanced"
-            hour_data.append({
-                "Hour": f"{str(hr).zfill(2)}:00",
-                "Active DEs": count,
-                "Active Orders": int(orders),
-                "Recommendation": rec
-            })
-    hour_chart_df = pd.DataFrame(hour_data)
-
-    color_scale = alt.Scale(
-        domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
-        range=["#e53935", "#fb8c00", "#43a047"]
-    )
-
-    if not hour_chart_df.empty:
-        # Bar for login count
-        bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
-            x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
-            y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)", axis=alt.Axis(titleColor="#43a047")),
-            color=alt.Color("Recommendation:N", scale=color_scale, legend=alt.Legend(title="Hour Status")),
-            tooltip=[
-                alt.Tooltip("Hour", title="Hour"),
-                alt.Tooltip("Active DEs", title="Logged In DEs"),
-                alt.Tooltip("Active Orders", title="Order Count"),
-                alt.Tooltip("Recommendation", title="Staffing Status"),
-            ]
-        )
-        # Line for order count (secondary axis)
-        line = alt.Chart(hour_chart_df).mark_line(point=True, strokeWidth=3, color="#ff7f0e").encode(
-            x=alt.X("Hour", sort=list(hour_chart_df["Hour"])),
-            y=alt.Y("Active Orders", axis=alt.Axis(title="Order Count", titleColor="#ff7f0e"), scale=alt.Scale(zero=True)),
-            tooltip=[
-                alt.Tooltip("Hour", title="Hour"),
-                alt.Tooltip("Active Orders", title="Order Count"),
-            ]
-        )
-        chart = alt.layer(bar, line).resolve_scale(
-            y='independent'
-        ).properties(
-            title=f"Hourly Login vs Orders – {show_zone if show_zone else ''}"
-        )
-        st.altair_chart(chart.interactive(), use_container_width=True)
-    if hour_chart_df.empty:
-        st.info("No hourly login data found for this selection.")
-if not (hourly_cols and not df.empty and not zone_hour_df.empty):
-    st.info("No hourly login data available in uploaded file.")
     # ---------------------- TABLE OF DEs LOGGED IN PER DAY ----------------------
     st.markdown("#### 🔎 DEs Logged In Per Day")
     with st.expander("💡 DE Login Table Explained (click to expand)"):
@@ -469,7 +422,6 @@ Full DE-wise view for each day:
 See login mins, orders, and other stats.  
 Filter, sort, or download for detailed ops action.
         """)
-
     de_cols = ["DT", "CITY", "ZONE", "DE_ID", "DE_NAME", "TOTAL LOGIN MINS", "TOTAL ORDERS"]
     if "REJECTED_ORDERS" in df.columns:
         de_cols.append("REJECTED_ORDERS")
@@ -495,7 +447,6 @@ Filter, sort, or download for detailed ops action.
 Flags DEs with >3hr login but <2 orders, or negative earnings.  
 Great for targeting those likely to quit, or at risk of disengagement!
         """)
-
     negative_earning_mask = df["DAILY_EARNINGS"] < 0 if "DAILY_EARNINGS" in df.columns else pd.Series([False] * len(df))
     churn_df = df[((df["TOTAL LOGIN MINS"] >= 180) & (df["TOTAL ORDERS"] < 2)) | negative_earning_mask]
     churn_df["Login Hours"] = (churn_df["TOTAL LOGIN MINS"] / 60).round(2)
@@ -519,7 +470,6 @@ Great for targeting those likely to quit, or at risk of disengagement!
         st.markdown("""
 Pick any DE and see their entire journey—login trends, order trends, week-on-week stats, and more.
         """)
-
     if "DE_ID" in df.columns:
         de_ids = df["DE_ID"].dropna().astype(str).unique()
         selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
@@ -528,13 +478,11 @@ Pick any DE and see their entire journey—login trends, order trends, week-on-w
             de_name = de_data['DE_NAME'].iloc[0]
             de_zone = de_data['ZONE'].iloc[0]
             de_city = de_data['CITY'].iloc[0]
-
             total_days = de_data.shape[0]
             total_login = de_data["TOTAL LOGIN MINS"].sum()
             total_orders = de_data["TOTAL ORDERS"].sum()
             total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
             total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
-
             st.markdown(f"""
             <div style="text-align:center;">
                 <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
@@ -552,23 +500,12 @@ Pick any DE and see their entire journey—login trends, order trends, week-on-w
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
             st.markdown(
                 """
-                <div style='
-                    text-align:center; 
-                    font-size:2em; 
-                    font-weight:800; 
-                    margin-top:36px; 
-                    margin-bottom:28px; 
-                    letter-spacing:0.5px;
-                    color:#1a1a1a;
-                '>
+                <div style='text-align:center; font-size:2em; font-weight:800; margin-top:36px; margin-bottom:28px; letter-spacing:0.5px;color:#1a1a1a;'>
                 📈 Week-on-Week Performance & Earnings
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                """, unsafe_allow_html=True)
             de_data["WEEK"] = de_data["WEEK"].astype(str)
             weekly_df = de_data.groupby("WEEK").agg(
                 Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
@@ -587,9 +524,55 @@ Pick any DE and see their entire journey—login trends, order trends, week-on-w
                     tooltip=["WEEK", metric]
                 ).properties(title=f"📊 {metric} by Week")
                 col.altair_chart(chart, use_container_width=True)
-
-
-
+            # --- Login Minutes vs Total Orders (Dual Axis) ---
+            st.markdown("### 📈 Login Minutes vs Orders Over Time")
+            chart_df = de_data.sort_values("DT")
+            base = alt.Chart(chart_df).encode(x="DT:T")
+            login_line = base.mark_line(color="#1f77b4").encode(
+                y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+                tooltip=["DT", "TOTAL LOGIN MINS"]
+            )
+            order_line = base.mark_line(color="#ff7f0e").encode(
+                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+                tooltip=["DT", "TOTAL ORDERS"]
+            )
+            st.altair_chart(
+                alt.layer(login_line, order_line).resolve_scale(y="independent"),
+                use_container_width=True
+            )
+            # --- Attendance/No-Show Pattern (Modern UI) ---
+            st.markdown("### 📅 Attendance/No-Show Pattern")
+            de_data_sorted = de_data.sort_values("DT").copy()
+            de_data_sorted["Present"] = np.where(de_data_sorted["TOTAL LOGIN MINS"] > 0, "Present", "Absent")
+            present_count = (de_data_sorted["Present"] == "Present").sum()
+            absent_count = (de_data_sorted["Present"] == "Absent").sum()
+            st.markdown(
+            f"<div style='margin-bottom: 12px; font-size: 1.1em;'>"
+            f"<span style='color: #43a047; font-weight: 600;'>{present_count} Present</span> &nbsp; | &nbsp; "
+            f"<span style='color: #b0b0b0; font-weight: 600;'>{absent_count} Absent</span>"
+            f"</div>",
+            unsafe_allow_html=True)
+            attendance_chart = alt.Chart(de_data_sorted).mark_rect(
+            width=24, height=36, cornerRadiusTopLeft=7, cornerRadiusTopRight=7
+            ).encode(
+            x=alt.X("DT:T", title=None, axis=alt.Axis(format="%d-%b", labelAngle=-30, labelFontSize=11, ticks=False)),
+            color=alt.Color(
+            "Present:N",
+            scale=alt.Scale(domain=["Present", "Absent"], range=["#43a047", "#ececec"]),
+            legend=alt.Legend(title="Attendance", labelFontSize=13)
+            ),
+            tooltip=[
+            alt.Tooltip("DT:T", title="Date", format="%A, %d %b %Y"),
+            alt.Tooltip("Present", title="Attendance"),
+            alt.Tooltip("TOTAL LOGIN MINS", title="Login Minutes"),
+            alt.Tooltip("TOTAL ORDERS", title="Orders")
+        ]
+            ).properties(
+            width=28 * len(de_data_sorted),
+            height=48,
+            title="Attendance Calendar"
+            )
+            st.altair_chart(attendance_chart, use_container_width=True)
             # --- Hourly Login vs Orders (Per Day) ---
             st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
             hourly_records = []
@@ -616,14 +599,13 @@ Pick any DE and see their entire journey—login trends, order trends, week-on-w
             if len(hourly_records) == 0:
                 st.info("ℹ️ No hourly data found for this DE.")
 
-    # ---------------------- NO SHOW DEs ----------------------
+    # ---------------------- NO SHOW DEs (ALWAYS VISIBLE) ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
     with st.expander("💡 No-Show DEs Logic (click to expand)"):
         st.markdown("""
 Find DEs who were present last period, but missing in the current period.  
 Perfect for win-back, reactivation calls, and targeted support.
         """)
-
     col_prev, col_curr = st.columns(2)
     with col_prev:
         prev_dates = st.date_input("🗕️ Select Previous Period", [])
@@ -659,5 +641,3 @@ Perfect for win-back, reactivation calls, and targeted support.
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
-
-
