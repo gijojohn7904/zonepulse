@@ -118,15 +118,18 @@ if uploaded_file:
     st.markdown("## 📊 Zone-Level Hourly Report")
     with st.expander("💡 How to read the Zone-Level Hourly Report (click to expand)"):
         st.markdown("""
-<br><br>
-This table shows, hour by hour, whether each zone is:
-
-- **Overstaffed (⚠️):** Too many DEs, not enough orders.
-- **Understaffed (🔴):** Too few DEs, everyone’s overloaded.
-- **Balanced (✅):** Just right.
+This table shows, **hour by hour**, whether each zone is:
+- **Overstaffed** (⚠️): Too many DEs, not enough orders.
+- **Understaffed** (🔴): Too few DEs, everyone’s overloaded.
+- **Balanced** (✅): Just right.
 
 **Key Formula:**  
-Login Utilization % = (Avg Orders * 25 min) / (Avg Login Minutes) * 100
+Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100  
+Measures how efficiently DEs are being used each hour.
+
+**Interpretation:**  
+- If Login Utilization is **low** and orders/hr is also low, you may be **overstaffed**.
+- If Login Utilization is **high** and orders/hr is also high, you may be **understaffed**.
 
 **Thresholds:**  
 - **Instamart:**  
@@ -136,8 +139,10 @@ Login Utilization % = (Avg Orders * 25 min) / (Avg Login Minutes) * 100
   - Overstaffed: Orders/hr < 1.0 & Utilization < 50%  
   - Understaffed: Orders/hr > 1.2 & Utilization > 57%  
 
-👉 Use this to spot when you need to cut idle supply, or ramp up hiring/incentives!
-        """, unsafe_allow_html=True)
+⚠️ **High utilization** = DEs are busy (possible understaffing).  
+**Low utilization** = DEs idle (possible overstaffing).  
+**Aim for ‘Balanced’ – Use this to spot when you need to cut idle supply or ramp up hiring/incentives!**
+        """)
     hourly_data = []
     for hr in range(24):
         fd_col = f"FD_{str(hr).zfill(2)}"
@@ -426,10 +431,9 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
         )
 
         if not hour_chart_df.empty:
-            # Bar for login count
             bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
                 x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
-                y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)", axis=alt.Axis(titleColor="#43a047")),
+                y=alt.Y("Active DEs", title="DEs Logged In (across selected dates)"),
                 color=alt.Color("Recommendation:N", scale=color_scale, legend=alt.Legend(title="Hour Status")),
                 tooltip=[
                     alt.Tooltip("Hour", title="Hour"),
@@ -437,22 +441,10 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
                     alt.Tooltip("Active Orders", title="Order Count"),
                     alt.Tooltip("Recommendation", title="Staffing Status"),
                 ]
-            )
-            # Line for order count (secondary axis)
-            line = alt.Chart(hour_chart_df).mark_line(point=True, strokeWidth=3, color="#ff7f0e").encode(
-                x=alt.X("Hour", sort=list(hour_chart_df["Hour"])),
-                y=alt.Y("Active Orders", axis=alt.Axis(title="Order Count", titleColor="#ff7f0e"), scale=alt.Scale(zero=True)),
-                tooltip=[
-                    alt.Tooltip("Hour", title="Hour"),
-                    alt.Tooltip("Active Orders", title="Order Count"),
-                ]
-            )
-            chart = alt.layer(bar, line).resolve_scale(
-                y='independent'
             ).properties(
-                title=f"Hourly Login vs Orders – {show_zone if show_zone else ''}"
+                title=f"Hourly Login Distribution – {show_zone if show_zone else ''}"
             )
-            st.altair_chart(chart.interactive(), use_container_width=True)
+            st.altair_chart(bar, use_container_width=True)
         if hour_chart_df.empty:
             st.info("No hourly login data found for this selection.")
     if not (hourly_cols and not df.empty and not zone_hour_df.empty):
@@ -510,87 +502,123 @@ Great for targeting those likely to quit, or at risk of disengagement!
     else:
         st.info("✅ No churn risk DEs found for the selected filters.")
 
-# ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
-st.markdown("## 👤 Individual DE-wise View")
-with st.expander("💡 DE-wise Drilldown Explained (click to expand)"):
-    st.markdown("""
-Pick any DE and see their entire journey—login trends, order trends, week-on-week stats, attendance heatmap, and more.
-    """)
-
-if "DE_ID" in df.columns:
-    de_ids = df["DE_ID"].dropna().astype(str).unique()
-    selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
-    if selected_de != "None":
-        de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
-        de_name = de_data['DE_NAME'].iloc[0]
-        de_zone = de_data['ZONE'].iloc[0]
-        de_city = de_data['CITY'].iloc[0]
-
-        total_days = de_data.shape[0]
-        total_login = de_data["TOTAL LOGIN MINS"].sum()
-        total_orders = de_data["TOTAL ORDERS"].sum()
-        total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
-        total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
-
-        st.markdown(f"""
-        <div style="text-align:center;">
-            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
-                DE: {selected_de} – {de_name}
-            </div>
-            <div style="margin-bottom: 0.7em;">
-                📍 Zone: <b>{de_zone}</b> &nbsp; | &nbsp; 🏣️ City: <b>{de_city}</b>
-            </div>
-            <div style="font-size:1.05em; background:#f8f9fa; border-radius:10px; display:inline-block; padding:10px 18px; box-shadow:0 2px 8px #eee;">
-                🔕️ <b>Active Days:</b> {total_days} &nbsp; | &nbsp; 
-                ⏱️ <b>Total Login Hrs:</b> {round(total_login/60,2)} &nbsp; | &nbsp; 
-                🔵️ <b>Total Orders:</b> {int(total_orders)} &nbsp; | &nbsp; 
-                ⛔ <b>Rejected Orders:</b> {int(total_rejected)} &nbsp; | &nbsp; 
-                💸 <b>Total Earnings:</b> ₹{round(total_earnings,2)}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # --- Week-on-Week Bar Charts ---
+    # ---------------------- INDIVIDUAL DE-WISE VIEW ----------------------
+    st.markdown("## 👤 Individual DE-wise View")
+    with st.expander("💡 DE-wise Drilldown Explained (click to expand)"):
         st.markdown("""
-        <div style='text-align:center; font-size:2em; font-weight:800; margin-top:36px; margin-bottom:28px; letter-spacing:0.5px; color:#1a1a1a;'>
-        📊 Weekly Performance Metrics
-        </div>
-        """, unsafe_allow_html=True)
-        de_data["WEEK"] = de_data["WEEK"].astype(str)
-        weekly_df = de_data.groupby("WEEK").agg(
-            Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
-            Orders=("TOTAL ORDERS", "sum"),
-            Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
-            Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
-        ).reset_index()
-        metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
-        colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
-        chart_cols = st.columns(2)
-        for i, metric in enumerate(metrics):
-            col = chart_cols[i % 2]
-            chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
-                x=alt.X("WEEK", sort=None),
-                y=alt.Y(metric, type="quantitative"),
-                tooltip=["WEEK", metric]
-            ).properties(title=f"{metric} by Week")
-            col.altair_chart(chart, use_container_width=True)
+Pick any DE and see their entire journey—login trends, order trends, week-on-week stats, and more.
+        """)
 
-        # --- Login Minutes vs Total Orders (Dual Axis) ---
-        st.markdown("### 📈 Login Minutes vs Orders Over Time")
-        chart_df = de_data.sort_values("DT")
-        base = alt.Chart(chart_df).encode(x="DT:T")
-        login_line = base.mark_line(color="#1f77b4").encode(
-            y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
-            tooltip=["DT", "TOTAL LOGIN MINS"]
-        )
-        order_line = base.mark_line(color="#ff7f0e").encode(
-            y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
-            tooltip=["DT", "TOTAL ORDERS"]
-        )
-        st.altair_chart(
-            alt.layer(login_line, order_line).resolve_scale(y="independent"),
-            use_container_width=True
-        )
+    if "DE_ID" in df.columns:
+        de_ids = df["DE_ID"].dropna().astype(str).unique()
+        selected_de = st.selectbox("😮 Choose DE ID to Explore", ["None"] + sorted(de_ids))
+        if selected_de != "None":
+            de_data = df[df["DE_ID"].astype(str) == selected_de].copy()
+            de_name = de_data['DE_NAME'].iloc[0]
+            de_zone = de_data['ZONE'].iloc[0]
+            de_city = de_data['CITY'].iloc[0]
+
+            total_days = de_data.shape[0]
+            total_login = de_data["TOTAL LOGIN MINS"].sum()
+            total_orders = de_data["TOTAL ORDERS"].sum()
+            total_rejected = de_data["REJECTED_ORDERS"].sum() if "REJECTED_ORDERS" in de_data.columns else 0
+            total_earnings = de_data["DAILY_EARNINGS"].sum() if "DAILY_EARNINGS" in de_data.columns else 0
+
+            st.markdown(f"""
+            <div style="text-align:center;">
+                <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 0.5em;">
+                    DE: {selected_de} – {de_name}
+                </div>
+                <div style="margin-bottom: 0.7em;">
+                    📍 Zone: <b>{de_zone}</b> &nbsp; | &nbsp; 🏣️ City: <b>{de_city}</b>
+                </div>
+                <div style="font-size:1.05em; background:#f8f9fa; border-radius:10px; display:inline-block; padding:10px 18px; box-shadow:0 2px 8px #eee;">
+                    🔕️ <b>Active Days:</b> {total_days} &nbsp; | &nbsp; 
+                    ⏱️ <b>Total Login Hrs:</b> {round(total_login/60,2)} &nbsp; | &nbsp; 
+                    🔵️ <b>Total Orders:</b> {int(total_orders)} &nbsp; | &nbsp; 
+                    ⛔ <b>Rejected Orders:</b> {int(total_rejected)} &nbsp; | &nbsp; 
+                    💸 <b>Total Earnings:</b> ₹{round(total_earnings,2)}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown(
+                """
+                <div style='
+                    text-align:center; 
+                    font-size:2em; 
+                    font-weight:800; 
+                    margin-top:36px; 
+                    margin-bottom:28px; 
+                    letter-spacing:0.5px;
+                    color:#1a1a1a;
+                '>
+                📈 Week-on-Week Performance & Earnings
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            de_data["WEEK"] = de_data["WEEK"].astype(str)
+            weekly_df = de_data.groupby("WEEK").agg(
+                Login_Hours=("TOTAL LOGIN MINS", lambda x: round(x.sum() / 60, 2)),
+                Orders=("TOTAL ORDERS", "sum"),
+                Rejections=("REJECTED_ORDERS", "sum") if "REJECTED_ORDERS" in de_data.columns else ("TOTAL ORDERS", "sum"),
+                Earnings=("DAILY_EARNINGS", "sum") if "DAILY_EARNINGS" in de_data.columns else ("TOTAL ORDERS", "sum")
+            ).reset_index()
+            metrics = ["Login_Hours", "Orders", "Rejections", "Earnings"]
+            colors = ["#1f77b4", "#2ca02c", "#d62728", "#ff7f0e"]
+            chart_cols = st.columns(2)
+            for i, metric in enumerate(metrics):
+                col = chart_cols[i % 2]
+                chart = alt.Chart(weekly_df).mark_bar(color=colors[i]).encode(
+                    x=alt.X("WEEK", sort=None),
+                    y=alt.Y(metric, type="quantitative"),
+                    tooltip=["WEEK", metric]
+                ).properties(title=f"📊 {metric} by Week")
+                col.altair_chart(chart, use_container_width=True)
+
+            # --- Login Minutes vs Total Orders ---
+            st.markdown("### 📈 Login Minutes vs Total Orders Over Time")
+            chart_df = de_data.sort_values("DT")
+            base = alt.Chart(chart_df).encode(x="DT:T")
+            login_line = base.mark_line(color="#1f77b4").encode(
+                y=alt.Y("TOTAL LOGIN MINS", axis=alt.Axis(title="Login Minutes")),
+                tooltip=["DT", "TOTAL LOGIN MINS"]
+            )
+            order_line = base.mark_line(color="#ff7f0e").encode(
+                y=alt.Y("TOTAL ORDERS", axis=alt.Axis(title="Total Orders", orient="right")),
+                tooltip=["DT", "TOTAL ORDERS"]
+            )
+            st.altair_chart(
+                alt.layer(login_line, order_line).resolve_scale(y="independent"),
+                use_container_width=True
+            )
+
+            # --- Hourly Login vs Orders (Per Day) ---
+            st.markdown("### ⏱️ Hourly Login vs Orders (Per Day)")
+            hourly_records = []
+            for _, row in de_data.iterrows():
+                date = row["DT"]
+                for hr in range(24):
+                    lh_col = f"LH_{str(hr).zfill(2)}"
+                    fd_col = f"FD_{str(hr).zfill(2)}"
+                    if lh_col in row and fd_col in row:
+                        login_min = row[lh_col]
+                        orders = row[fd_col]
+                        if login_min > 0 or orders > 0:
+                            hourly_records.append({
+                                "Date": date,
+                                "Hour": f"{str(hr).zfill(2)}:00",
+                                "Login Minutes": login_min,
+                                "Orders": orders
+                            })
+            if len(hourly_records) > 0:
+                hourly_df = pd.DataFrame(hourly_records)
+                st.dataframe(hourly_df.sort_values(by=["Date", "Hour"]))
+                st.download_button("📥 Download DE Hourly Log", data=hourly_df.to_csv(index=False),
+                                   file_name=f"{selected_de}_hourly_log.csv", mime="text/csv")
+            if len(hourly_records) == 0:
+                st.info("ℹ️ No hourly data found for this DE.")
 
     # ---------------------- NO SHOW DEs ----------------------
     st.markdown("## 🤔 No-Show DEs – Previously Active, Not Logged In Now")
@@ -635,3 +663,5 @@ Perfect for win-back, reactivation calls, and targeted support.
 
 else:
     st.info("👆 Upload your DE Order vs Login File to get started.")
+
+
