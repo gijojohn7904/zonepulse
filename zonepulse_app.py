@@ -28,6 +28,7 @@ def check_password():
         st.text_input("🔐 Enter password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password. Please try again.")
         st.stop()
+
 check_password()
 
 # ---------------------- PAGE CONFIG & BANNERS ----------------------
@@ -35,16 +36,21 @@ st.set_page_config(page_title="ZonePulse – DE Supply Efficiency Monitor", layo
 st.markdown("""
 <style>
 div[data-testid="stExpander"] > details > summary {
-    background-color: #e3f0fc !important; color: #145190 !important;
-    font-weight: 600 !important; border-radius: 7px 7px 0 0 !important;
-    padding: 10px 16px !important; transition: background 0.2s;
-    cursor: pointer; border: 1px solid #b6d4fe !important;
+    background-color: #e3f0fc !important;
+    color: #145190 !important;
+    font-weight: 600 !important;
+    border-radius: 7px 7px 0 0 !important;
+    padding: 10px 16px !important;
+    transition: background 0.2s;
+    cursor: pointer;
+    border: 1px solid #b6d4fe !important;
 }
 div[data-testid="stExpander"] > details[open] > summary {
     border-bottom: 2px solid #90caf9 !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
     <div style='background-color:#fff3cd;padding:15px;border-radius:5px;border:1px solid #ffeeba;margin-bottom:25px;'>
     <b>⚠️ Confidentiality Notice by Swiggy:</b><br>
@@ -53,8 +59,10 @@ st.markdown("""
     Please handle this information responsibly, in accordance with company data policies.
     </div>
     """, unsafe_allow_html=True)
+
 st.markdown("""
 # 🚦 Fleet Efficiency & Attrition Risk Monitor | Swiggy
+
 Get zone-by-zone *clarity* on DE activity, eliminate idle supply, target churn risks, and drive reliable ops—*rain or shine*.
 """)
 
@@ -66,13 +74,14 @@ if uploaded_file:
     if "CITY" not in df.columns or "ZONE" not in df.columns:
         st.error("Missing CITY or ZONE column in file.")
         st.stop()
+
     required_cols = [col for col in df.columns if "LH_" in col or "FD_" in col]
     if len(required_cols) == 0:
         st.error("❌ Your CSV must contain hourly login/order columns like LH_00, FD_01 etc.")
         st.stop()
-    # Detect vertical
+
     df["VERTICAL"] = df["DE_SHIFT"].apply(lambda x: "Instamart" if any(tag in str(x).upper() for tag in ["IM", "DDE"]) else "SwiggyFood")
-    # ------ FILTERS ------
+
     col1, col2 = st.columns(2)
     with col1:
         vertical = st.selectbox("🔃 Choose Vertical", ["SwiggyFood", "Instamart"])
@@ -83,6 +92,7 @@ if uploaded_file:
         selected_city = st.selectbox("🏩 Choose City", city_options)
         if selected_city != "All":
             df = df[df["CITY"] == selected_city]
+
     col3, col4 = st.columns(2)
     with col3:
         zones = sorted(df["ZONE"].dropna().unique())
@@ -96,7 +106,7 @@ if uploaded_file:
         selected_dates = st.date_input("🗓️ Filter by Date Range", [min_date, max_date])
         if len(selected_dates) == 2:
             df = df[(df["DT"] >= selected_dates[0]) & (df["DT"] <= selected_dates[1])]
-    # Add total login mins/orders
+
     df["TOTAL LOGIN MINS"] = df[[f"LH_{str(i).zfill(2)}" for i in range(24) if f"LH_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
     df["TOTAL ORDERS"] = df[[f"FD_{str(i).zfill(2)}" for i in range(24) if f"FD_{str(i).zfill(2)}" in df.columns]].sum(axis=1)
 
@@ -110,8 +120,7 @@ This table shows, **hour by hour**, whether each zone is:
 - **Balanced** (✅): Just right.
 
 **Key Formula:**  
-Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100  
-Measures how efficiently DEs are being used each hour.
+Login Utilization % = (Avg Orders × 25 min) / (Avg Login Minutes) × 100
 
 **Thresholds:**  
 - **Instamart:**  
@@ -163,7 +172,7 @@ Measures how efficiently DEs are being used each hour.
         zone_hour_df = pd.DataFrame()
         st.info("No zone/city hourly data available. Please check the uploaded file or filter selection.")
 
-    # ============ ⏰ Zone-wise Hourly Login Distribution (Dual Axis) =============
+    # ---------------------- ZONE-WISE HOURLY LOGIN DISTRIBUTION (DUAL AXIS) ----------------------
     st.markdown("#### ⏰ Zone-wise Hourly Login Distribution")
     with st.expander("💡 Hourly Login Distribution Explained (click to expand)"):
         st.markdown("""
@@ -172,27 +181,10 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
 - <span style='color:#43a047'><b>Green = Balanced</b></span>
 - <span style='color:#fb8c00'><b>Orange = Overstaffed (trim supply)</b></span>
 - <span style='color:#e53935'><b>Red = Understaffed (ramp up!)</b></span>
-<br>
-**Thresholds:**  
-<ul>
-<li><b>Instamart:</b>
-    <ul>
-        <li><b>Overstaffed:</b> Orders/hr < 1.2 & Utilization < 30%</li>
-        <li><b>Understaffed:</b> Orders/hr > 2.2 & Utilization > 70%</li>
-        <li><b>Otherwise:</b> Balanced</li>
-    </ul>
-</li>
-<li><b>SwiggyFood:</b>
-    <ul>
-        <li><b>Overstaffed:</b> Orders/hr < 1.0 & Utilization < 50%</li>
-        <li><b>Understaffed:</b> Orders/hr > 1.2 & Utilization > 57%</li>
-        <li><b>Otherwise:</b> Balanced</li>
-    </ul>
-</li>
-</ul>
 """, unsafe_allow_html=True)
     hourly_cols = [f"LH_{str(hr).zfill(2)}" for hr in range(24) if f"LH_{str(hr).zfill(2)}" in df.columns]
     order_cols = [f"FD_{str(hr).zfill(2)}" for hr in range(24) if f"FD_{str(hr).zfill(2)}" in df.columns]
+
     if hourly_cols and not df.empty and not zone_hour_df.empty:
         hourly_df = df.copy()
         show_zone = selected_zone if selected_zone != "All" else (zone_hour_df["ZONE"].iloc[0] if not zone_hour_df.empty else None)
@@ -224,10 +216,12 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
                     "Recommendation": rec
                 })
         hour_chart_df = pd.DataFrame(hour_data)
+
         color_scale = alt.Scale(
             domain=["🔴 Understaffed", "⚠️ Overstaffed", "✅ Balanced"],
             range=["#e53935", "#fb8c00", "#43a047"]
         )
+
         if not hour_chart_df.empty:
             bar = alt.Chart(hour_chart_df).mark_bar(size=18).encode(
                 x=alt.X("Hour", sort=list(hour_chart_df["Hour"]), title="Hour of Day"),
@@ -254,11 +248,10 @@ Shows how many DEs are logged in by hour (across all dates), with zone status co
                 title=f"Hourly Login vs Orders – {show_zone if show_zone else ''}"
             )
             st.altair_chart(chart.interactive(), use_container_width=True)
-        if hour_chart_df.empty:
+        else:
             st.info("No hourly login data found for this selection.")
-    if not (hourly_cols and not df.empty and not zone_hour_df.empty):
+    else:
         st.info("No hourly login data available in uploaded file.")
-
     # ================= RAIN PARTICIPATION ANALYSIS (BY RAIN HOUR) ==================
     st.markdown("---")
     st.markdown("## 🌧️ Rain Participation Analysis (Zone & DE Level)")
